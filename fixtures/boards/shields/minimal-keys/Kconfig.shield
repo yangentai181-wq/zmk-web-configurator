@@ -1,0 +1,5 @@
+config SHIELD_MINIMAL_KEYS_R
+    def_bool $(shields_list_contains,minimal-keys_R)
+
+config SHIELD_MINIMAL_KEYS_L
+    def_bool $(shields_list_contains,minimal-keys_L)

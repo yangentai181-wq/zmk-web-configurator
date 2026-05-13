@@ -1,0 +1,22 @@
+if SHIELD_MINIMAL_KEYS_R
+
+config ZMK_KEYBOARD_NAME
+    default "minimal-keys_R"
+
+config ZMK_SPLIT
+    default y
+
+config ZMK_SPLIT_ROLE_CENTRAL
+    default y
+
+endif
+
+if SHIELD_MINIMAL_KEYS_L
+
+config ZMK_KEYBOARD_NAME
+    default "minimal-keys_L"
+
+config ZMK_SPLIT
+    default y
+
+endif
