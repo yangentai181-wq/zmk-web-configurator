@@ -50,10 +50,12 @@ export type StudioActions = {
     layerId: number,
     position: number,
     binding: StudioBehaviorBinding,
-  ) => Promise<boolean>;
-  save: () => Promise<boolean>;
-  discard: () => Promise<boolean>;
+  ) => Promise<StudioResult>;
+  save: () => Promise<StudioResult>;
+  discard: () => Promise<StudioResult>;
 };
+
+export type StudioResult = { ok: boolean; error: string | null };
 
 export function useZmkStudio(): StudioState & StudioActions {
   const [connected, setConnected] = useState(false);
@@ -196,11 +198,12 @@ export function useZmkStudio(): StudioState & StudioActions {
       layerId: number,
       position: number,
       binding: StudioBehaviorBinding,
-    ): Promise<boolean> => {
+    ): Promise<StudioResult> => {
       const conn = connRef.current;
       if (!conn) {
-        setError("Not connected to ZMK Studio");
-        return false;
+        const msg = "Not connected to ZMK Studio";
+        setError(msg);
+        return { ok: false, error: msg };
       }
       setBusy(true);
       try {
@@ -213,11 +216,27 @@ export function useZmkStudio(): StudioState & StudioActions {
             },
           },
         } as any);
+        console.debug("setLayerBinding resp", {
+          layerId,
+          position,
+          binding,
+          resp,
+        });
         const code = (resp as any)?.keymap?.setLayerBinding;
-        // SET_LAYER_BINDING_RESP_OK = 0
+        // SET_LAYER_BINDING_RESP_OK = 0; proto3 typically omits the
+        // field on the default value, so undefined is also success.
         if (code !== 0 && code !== undefined) {
-          setError(`setLayerBinding error code ${code}`);
-          return false;
+          const reason =
+            (
+              {
+                1: "INVALID_LOCATION (layer / position)",
+                2: "INVALID_BEHAVIOR (behaviorId not recognised)",
+                3: "INVALID_PARAMETERS (param1 / param2)",
+              } as Record<number, string>
+            )[code] ?? `code ${code}`;
+          const msg = `setLayerBinding ${reason}`;
+          setError(msg);
+          return { ok: false, error: msg };
         }
         // Reflect locally
         setLayers((prev) =>
@@ -230,10 +249,12 @@ export function useZmkStudio(): StudioState & StudioActions {
         );
         setUnsavedChanges(true);
         setError(null);
-        return true;
+        return { ok: true, error: null };
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        return false;
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error("setLayerBinding threw", e);
+        setError(msg);
+        return { ok: false, error: msg };
       } finally {
         setBusy(false);
       }
@@ -241,43 +262,47 @@ export function useZmkStudio(): StudioState & StudioActions {
     [],
   );
 
-  const save = useCallback(async (): Promise<boolean> => {
+  const save = useCallback(async (): Promise<StudioResult> => {
     const conn = connRef.current;
-    if (!conn) return false;
+    if (!conn) return { ok: false, error: "Not connected" };
     setBusy(true);
     try {
       const resp = await call_rpc(conn, {
         keymap: { saveChanges: true },
       } as any);
       const code = (resp as any)?.keymap?.saveChanges;
-      // SAVE_CHANGES_ERR_OK = 0 (or just empty object on success)
       if (code !== 0 && code !== undefined && typeof code !== "object") {
-        setError(`saveChanges error code ${code}`);
-        return false;
+        const msg = `saveChanges error code ${code}`;
+        setError(msg);
+        return { ok: false, error: msg };
       }
       setUnsavedChanges(false);
       setError(null);
-      return true;
+      return { ok: true, error: null };
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      return false;
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("saveChanges threw", e);
+      setError(msg);
+      return { ok: false, error: msg };
     } finally {
       setBusy(false);
     }
   }, []);
 
-  const discard = useCallback(async (): Promise<boolean> => {
+  const discard = useCallback(async (): Promise<StudioResult> => {
     const conn = connRef.current;
-    if (!conn) return false;
+    if (!conn) return { ok: false, error: "Not connected" };
     setBusy(true);
     try {
       await call_rpc(conn, { keymap: { discardChanges: true } } as any);
       setUnsavedChanges(false);
       setError(null);
-      return true;
+      return { ok: true, error: null };
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      return false;
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("discardChanges threw", e);
+      setError(msg);
+      return { ok: false, error: msg };
     } finally {
       setBusy(false);
     }

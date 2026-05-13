@@ -89,10 +89,10 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
       }
       const layerId = studio.layers[layerIndex].id;
       setStudioApplyError(null);
-      void studio.setBinding(layerId, pos, translated).then((ok) => {
-        if (!ok) {
+      void studio.setBinding(layerId, pos, translated).then((result) => {
+        if (!result.ok) {
           setStudioApplyError(
-            `Studio: 実機への反映に失敗しました — ${studio.error ?? "unknown"}`,
+            `Studio: 実機への反映に失敗しました — ${result.error ?? "unknown"}`,
           );
         }
       });
