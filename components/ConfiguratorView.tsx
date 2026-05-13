@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Binding, KeyboardConfig, Layer } from "@/lib/types";
 import { useWebHidKeyboard } from "@/lib/use-webhid";
+import { useZmkStudio } from "@/lib/use-zmk-studio";
 import { generateKeymap } from "@/lib/keymap-generator";
+import { translateBinding } from "@/lib/translate-binding";
+import { StudioConnect } from "./StudioConnect";
 import { KeyboardView } from "./KeyboardView";
 import { LayerTabs } from "./LayerTabs";
 import { KeyDetail } from "./KeyDetail";
@@ -21,6 +24,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     {},
   );
   const hid = useWebHidKeyboard();
+  const studio = useZmkStudio();
 
   const effectiveLayers: Layer[] = useMemo(() => {
     return config.keymap.layers.map((l) => {
@@ -59,12 +63,36 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     [config],
   );
 
+  const [studioApplyError, setStudioApplyError] = useState<string | null>(null);
+
   function applyEdit(pos: number, next: Binding) {
     setEdits((prev) => {
       const layerEdits = { ...(prev[layerIndex] ?? {}) };
       layerEdits[pos] = next;
       return { ...prev, [layerIndex]: layerEdits };
     });
+
+    // If Studio is connected, attempt a live push so the keyboard
+    // reflects the edit immediately. On any failure the local edit is
+    // still preserved so the user can fall back to the download flow.
+    if (studio.connected && studio.layers[layerIndex]) {
+      const translated = translateBinding(next, studio.behaviors);
+      if (translated === null) {
+        setStudioApplyError(
+          `Studio: ${next.raw} は自動翻訳できませんでした (Download .keymap で反映してください)`,
+        );
+        return;
+      }
+      const layerId = studio.layers[layerIndex].id;
+      setStudioApplyError(null);
+      void studio.setBinding(layerId, pos, translated).then((ok) => {
+        if (!ok) {
+          setStudioApplyError(
+            `Studio: 実機への反映に失敗しました — ${studio.error ?? "unknown"}`,
+          );
+        }
+      });
+    }
   }
 
   function resetEdit(pos: number) {
@@ -126,14 +154,20 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               </span>
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <StatusBar config={config} hidConnected={!!hid.device} />
             <HidConnect hid={hid} />
+            <StudioConnect studio={studio} />
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-6">
+        {studioApplyError && (
+          <div className="mb-3 rounded-lg border border-status-warn/30 bg-red-50 px-3 py-2 text-xs text-status-warn">
+            {studioApplyError}
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <LayerTabs
             layers={config.keymap.layers}
