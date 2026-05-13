@@ -151,13 +151,21 @@ export function useZmkStudio(): StudioState & StudioActions {
           } as any).then((r) => (r as any)?.behaviors?.getBehaviorDetails),
         ),
       );
-      setBehaviors(
-        details.filter(Boolean).map((d: any) => ({
-          id: d.id ?? d.behaviorId ?? 0,
-          name: d.friendlyName ?? d.displayName ?? d.name,
-          displayName: d.displayName ?? d.friendlyName ?? d.name,
+      const mappedBehaviors = details.filter(Boolean).map((d: any) => ({
+        id: d.id ?? d.behaviorId ?? 0,
+        name: d.friendlyName ?? d.displayName ?? d.name,
+        displayName: d.displayName ?? d.friendlyName ?? d.name,
+        metadata: d.metadata,
+      }));
+      console.info(
+        "Studio behaviors:",
+        mappedBehaviors.map((b: any) => ({
+          id: b.id,
+          displayName: b.displayName,
         })),
       );
+      console.debug("Studio behaviors full:", mappedBehaviors);
+      setBehaviors(mappedBehaviors);
 
       const chk = await call_rpc(conn, {
         keymap: { checkUnsavedChanges: true },
