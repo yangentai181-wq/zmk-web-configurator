@@ -96,9 +96,11 @@ export function useWebHidKeyboard(): HidState & HidActions {
   const [recentNonKeyFrames, setRecentNonKeyFrames] = useState<HidDebugFrame[]>(
     [],
   );
+  // Start as `false` so SSR and the first client render agree; flip to
+  // the real value after mount to keep React happy about hydration.
+  const [supported, setSupported] = useState(false);
+  useEffect(() => setSupported(!!getHid()), []);
   const listenerRef = useRef<EventListener | null>(null);
-
-  const supported = !!getHid();
 
   const handleReport = useCallback((event: HIDInputReportEvent) => {
     const data = event.data;

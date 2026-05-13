@@ -68,7 +68,13 @@ export function useZmkStudio(): StudioState & StudioActions {
   const connRef = useRef<RpcConnection | null>(null);
   const notificationCancelRef = useRef<(() => void) | null>(null);
 
-  const supported = typeof navigator !== "undefined" && "serial" in navigator;
+  // Defer the navigator check until after mount so the first client render
+  // matches the SSR markup (`false`) and React doesn't trigger a
+  // hydration mismatch when the value flips on the client.
+  const [supported, setSupported] = useState(false);
+  useEffect(() => {
+    setSupported(typeof navigator !== "undefined" && "serial" in navigator);
+  }, []);
 
   const connect = useCallback(async () => {
     if (!supported) {
