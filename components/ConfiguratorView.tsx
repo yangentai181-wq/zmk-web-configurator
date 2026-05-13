@@ -88,6 +88,8 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               layerNames={layerNames}
               selectedPos={selectedPos}
               pressed={hid.pressed}
+              pointer={hid.pointer}
+              encoders={hid.encoders}
               onSelect={setSelectedPos}
             />
           </section>

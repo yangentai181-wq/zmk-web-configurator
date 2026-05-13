@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { Layer, PhysicalKey } from "@/lib/types";
+import type { EncoderSample, PointerSample } from "@/lib/use-webhid";
 import { categorize, categoryColor, describe } from "@/lib/zmk-bindings";
 
 const KEY_W = 70;
@@ -15,6 +17,8 @@ export function KeyboardView({
   layerNames,
   selectedPos,
   pressed,
+  pointer,
+  encoders,
   onSelect,
 }: {
   layout: PhysicalKey[];
@@ -22,8 +26,13 @@ export function KeyboardView({
   layerNames: string[];
   selectedPos: number | null;
   pressed?: ReadonlySet<number>;
+  pointer?: PointerSample | null;
+  encoders?: Readonly<Record<number, EncoderSample>>;
   onSelect: (pos: number | null) => void;
 }) {
+  // Tick the wall clock every 80ms so the live indicators fade out smoothly
+  // even when no new HID frame arrives.
+  const now = useNow(80);
   // Compute pixel coordinates from logical x/y; insert split gap between col 5 and col 7.
   const positioned = layout.map((k) => {
     const xUnit = k.col >= 7 ? k.col - 1 : k.col; // collapse gap
@@ -61,45 +70,21 @@ export function KeyboardView({
           RIGHT (Central)
         </text>
 
-        {/* Encoder indicator on left */}
-        <g transform={`translate(${leftMaxX - 60}, ${height - 48})`}>
-          <circle
-            cx={20}
-            cy={20}
-            r={18}
-            className="fill-orange-50"
-            stroke="#F97316"
-          />
-          <text
-            x={20}
-            y={24}
-            textAnchor="middle"
-            fontSize={10}
-            className="fill-accent"
-          >
-            ENC
-          </text>
-        </g>
+        {/* Encoder indicator on left (live: rotation arrow + delta number) */}
+        <EncoderMarker
+          x={leftMaxX - 60}
+          y={height - 48}
+          sample={encoders?.[0]}
+          now={now}
+        />
 
-        {/* Trackball indicator on right */}
-        <g transform={`translate(${rightMinX + 14}, ${height - 48})`}>
-          <circle
-            cx={20}
-            cy={20}
-            r={18}
-            className="fill-teal-50"
-            stroke="#0D9488"
-          />
-          <text
-            x={20}
-            y={24}
-            textAnchor="middle"
-            fontSize={10}
-            className="fill-primary"
-          >
-            TB
-          </text>
-        </g>
+        {/* Trackball indicator on right (live: velocity vector arrow) */}
+        <TrackballMarker
+          x={rightMinX + 14}
+          y={height - 48}
+          pointer={pointer ?? null}
+          now={now}
+        />
 
         {/* Keys */}
         {positioned.map((k) => {
@@ -180,4 +165,145 @@ function KeyCap({
       </foreignObject>
     </g>
   );
+}
+
+const TB_RADIUS = 18;
+const POINTER_FADE_MS = 400;
+const POINTER_ARROW_GAIN = 0.6;
+const POINTER_ARROW_MAX = 32;
+
+function TrackballMarker({
+  x,
+  y,
+  pointer,
+  now,
+}: {
+  x: number;
+  y: number;
+  pointer: PointerSample | null;
+  now: number;
+}) {
+  const elapsed = pointer ? now - pointer.at : Infinity;
+  const fresh = pointer && elapsed < POINTER_FADE_MS;
+  const fade = fresh ? 1 - elapsed / POINTER_FADE_MS : 0;
+
+  let ax = 0;
+  let ay = 0;
+  if (fresh && pointer) {
+    const mag = Math.hypot(pointer.dx, pointer.dy);
+    const scale =
+      mag > 0 ? Math.min(POINTER_ARROW_MAX, mag * POINTER_ARROW_GAIN) / mag : 0;
+    ax = pointer.dx * scale;
+    ay = pointer.dy * scale;
+  }
+
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      <defs>
+        <marker
+          id="tb-arrow"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#0D9488" />
+        </marker>
+      </defs>
+      <circle
+        cx={20}
+        cy={20}
+        r={TB_RADIUS}
+        className="fill-teal-50"
+        stroke="#0D9488"
+        strokeOpacity={0.4 + 0.6 * fade}
+      />
+      <text
+        x={20}
+        y={24}
+        textAnchor="middle"
+        fontSize={10}
+        className="fill-primary"
+      >
+        TB
+      </text>
+      {fresh && (ax !== 0 || ay !== 0) && (
+        <line
+          x1={20}
+          y1={20}
+          x2={20 + ax}
+          y2={20 + ay}
+          stroke="#0D9488"
+          strokeWidth={2}
+          strokeOpacity={fade}
+          markerEnd="url(#tb-arrow)"
+        />
+      )}
+    </g>
+  );
+}
+
+const ENC_RADIUS = 18;
+const ENCODER_FADE_MS = 600;
+
+function EncoderMarker({
+  x,
+  y,
+  sample,
+  now,
+}: {
+  x: number;
+  y: number;
+  sample?: EncoderSample;
+  now: number;
+}) {
+  const elapsed = sample ? now - sample.at : Infinity;
+  const fresh = sample && elapsed < ENCODER_FADE_MS;
+  const fade = fresh ? 1 - elapsed / ENCODER_FADE_MS : 0;
+  const symbol = !fresh ? "" : sample!.delta > 0 ? "↻" : "↺";
+
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      <circle
+        cx={20}
+        cy={20}
+        r={ENC_RADIUS}
+        className="fill-orange-50"
+        stroke="#F97316"
+        strokeOpacity={0.4 + 0.6 * fade}
+      />
+      <text
+        x={20}
+        y={24}
+        textAnchor="middle"
+        fontSize={10}
+        className="fill-accent"
+      >
+        ENC
+      </text>
+      {fresh && (
+        <text
+          x={45}
+          y={26}
+          fontSize={18}
+          fill="#F97316"
+          opacity={fade}
+          fontWeight="bold"
+        >
+          {symbol}
+        </text>
+      )}
+    </g>
+  );
+}
+
+function useNow(intervalMs: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
 }
