@@ -144,14 +144,25 @@ export function useWebHidKeyboard(): HidState & HidActions {
       setLastEventAt(now);
     }
 
-    // Capture every non-key inputreport into the debug buffer so we can
-    // diagnose unknown markers / byte layout issues from the UI.
-    const bytes: number[] = [];
-    const take = Math.min(data.byteLength, 12);
-    for (let i = 0; i < take; i++) bytes.push(data.getUint8(i));
-    setRecentNonKeyFrames((prev) =>
-      [{ at: now, reportId: event.reportId ?? 0, bytes }, ...prev].slice(0, 5),
-    );
+    // Only push known Raw HID markers into the debug panel. WebHID delivers
+    // every HID input report (boot keyboard / mouse / vendor) to the same
+    // listener, so without this filter the high-rate mouse stream would
+    // crowd out our 0xF2 / 0xF3 / 0xFF frames within milliseconds.
+    const isKnown =
+      marker === LAYER_PACKET_MARKER ||
+      marker === POINTER_PACKET_MARKER ||
+      marker === ENCODER_PACKET_MARKER;
+    if (isKnown) {
+      const bytes: number[] = [];
+      const take = Math.min(data.byteLength, 12);
+      for (let i = 0; i < take; i++) bytes.push(data.getUint8(i));
+      setRecentNonKeyFrames((prev) =>
+        [{ at: now, reportId: event.reportId ?? 0, bytes }, ...prev].slice(
+          0,
+          5,
+        ),
+      );
+    }
   }, []);
 
   const attach = useCallback(

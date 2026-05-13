@@ -126,12 +126,65 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                 highest bit {hidActiveLayer ?? "—"}
               </span>
             </summary>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="rounded-lg border border-border bg-canvas p-3 text-xs">
+                <div className="text-[10px] uppercase tracking-widest text-ink-muted">
+                  Last pointer frame (0xF2)
+                </div>
+                {hid.pointer ? (
+                  <div className="mt-1 font-mono">
+                    dx={hid.pointer.dx} dy={hid.pointer.dy} wheel=
+                    {hid.pointer.wheel} hwheel={hid.pointer.hwheel} btns=0x
+                    {hid.pointer.buttons.toString(16).padStart(2, "0")} ·{" "}
+                    <span className="text-ink-muted">
+                      {Math.max(
+                        0,
+                        Math.floor((Date.now() - hid.pointer.at) / 100) / 10,
+                      )}
+                      s ago
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mt-1 text-ink-secondary">
+                    まだ受信していません
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border bg-canvas p-3 text-xs">
+                <div className="text-[10px] uppercase tracking-widest text-ink-muted">
+                  Last encoder tick (0xF3)
+                </div>
+                {Object.keys(hid.encoders).length === 0 ? (
+                  <div className="mt-1 text-ink-secondary">
+                    まだ受信していません
+                  </div>
+                ) : (
+                  <ul className="mt-1 space-y-0.5 font-mono">
+                    {Object.entries(hid.encoders).map(([idx, s]) => (
+                      <li key={idx}>
+                        sensor={idx} delta={s.delta} ·{" "}
+                        <span className="text-ink-muted">
+                          {Math.max(
+                            0,
+                            Math.floor((Date.now() - s.at) / 100) / 10,
+                          )}
+                          s ago
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
             <div className="mt-3 text-[10px] uppercase tracking-widest text-ink-muted">
-              Recent non-key inputreports (newest first)
+              Recent layer/pointer/encoder packets (raw, newest first)
             </div>
             {hid.recentNonKeyFrames.length === 0 ? (
               <p className="mt-2 text-xs text-ink-secondary">
-                まだ 0xF1 以外のレポートを受信していません。
+                0xFF/0xF2/0xF3 のいずれもまだ受信していません。
               </p>
             ) : (
               <ul className="mt-2 space-y-1 font-mono text-xs">
