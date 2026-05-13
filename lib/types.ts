@@ -32,6 +32,13 @@ export type KeymapDoc = {
   defines: Record<string, number>;
   layers: Layer[];
   combos: ComboDef[];
+  /**
+   * Original .keymap source text. Kept so the generator can re-emit a
+   * round-trippable file: only the bindings = < ... > regions are
+   * substituted, leaving macros / behaviors / combos / sensor-bindings
+   * exactly as the user authored them.
+   */
+  originalText: string;
 };
 
 export type ComboDef = {

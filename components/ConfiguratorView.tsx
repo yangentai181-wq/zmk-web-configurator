@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { KeyboardConfig } from "@/lib/types";
+import type { Binding, KeyboardConfig, Layer } from "@/lib/types";
 import { useWebHidKeyboard } from "@/lib/use-webhid";
+import { generateKeymap } from "@/lib/keymap-generator";
 import { KeyboardView } from "./KeyboardView";
 import { LayerTabs } from "./LayerTabs";
 import { KeyDetail } from "./KeyDetail";
@@ -14,7 +15,27 @@ import { HidConnect } from "./HidConnect";
 export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
   const [layerIndex, setLayerIndex] = useState(0);
   const [selectedPos, setSelectedPos] = useState<number | null>(null);
+  // Edits overlay: edits[layerIndex][position] = Binding. Sparse so we can
+  // tell "edited" from "untouched" per key and only patch what changed.
+  const [edits, setEdits] = useState<Record<number, Record<number, Binding>>>(
+    {},
+  );
   const hid = useWebHidKeyboard();
+
+  const effectiveLayers: Layer[] = useMemo(() => {
+    return config.keymap.layers.map((l) => {
+      const layerEdits = edits[l.index];
+      if (!layerEdits) return l;
+      const nextBindings = l.bindings.map((b, pos) => layerEdits[pos] ?? b);
+      return { ...l, bindings: nextBindings };
+    });
+  }, [config.keymap.layers, edits]);
+
+  const editCount = useMemo(() => {
+    let n = 0;
+    for (const layer of Object.values(edits)) n += Object.keys(layer).length;
+    return n;
+  }, [edits]);
 
   // Derive the "active layer" from HID layer mask (highest set bit), so the
   // configurator follows the keyboard's real state while connected.
@@ -32,11 +53,54 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     }
   }, [hidActiveLayer, config.keymap.layers.length]);
 
-  const layer = config.keymap.layers[layerIndex] ?? config.keymap.layers[0];
+  const layer = effectiveLayers[layerIndex] ?? effectiveLayers[0];
   const layerNames = useMemo(
     () => config.keymap.layers.map((l) => l.displayName),
     [config],
   );
+
+  function applyEdit(pos: number, next: Binding) {
+    setEdits((prev) => {
+      const layerEdits = { ...(prev[layerIndex] ?? {}) };
+      layerEdits[pos] = next;
+      return { ...prev, [layerIndex]: layerEdits };
+    });
+  }
+
+  function resetEdit(pos: number) {
+    setEdits((prev) => {
+      const layerEdits = { ...(prev[layerIndex] ?? {}) };
+      delete layerEdits[pos];
+      const next = { ...prev };
+      if (Object.keys(layerEdits).length === 0) {
+        delete next[layerIndex];
+      } else {
+        next[layerIndex] = layerEdits;
+      }
+      return next;
+    });
+  }
+
+  function resetAll() {
+    setEdits({});
+  }
+
+  function downloadKeymap() {
+    const docWithEdits = {
+      ...config.keymap,
+      layers: effectiveLayers,
+    };
+    const text = generateKeymap(docWithEdits);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${config.name}.keymap`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   const activeLayers = useMemo(() => {
     const set = new Set<number>();
@@ -70,15 +134,41 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-6">
-        <LayerTabs
-          layers={config.keymap.layers}
-          active={layerIndex}
-          activeLayers={activeLayers}
-          onChange={(i) => {
-            setLayerIndex(i);
-            setSelectedPos(null);
-          }}
-        />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <LayerTabs
+            layers={config.keymap.layers}
+            active={layerIndex}
+            activeLayers={activeLayers}
+            onChange={(i) => {
+              setLayerIndex(i);
+              setSelectedPos(null);
+            }}
+          />
+          <div className="flex items-center gap-2">
+            {editCount > 0 && (
+              <>
+                <span className="rounded-lg border border-accent/30 bg-orange-50 px-3 py-1.5 text-xs text-accent">
+                  <span className="font-bold">{editCount}</span> edited
+                </span>
+                <button
+                  type="button"
+                  onClick={resetAll}
+                  className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-ink-secondary hover:bg-canvas"
+                >
+                  Reset all
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={downloadKeymap}
+              className="rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-bold text-white transition hover:bg-primary-hover"
+              title="Download a regenerated .keymap with your edits applied"
+            >
+              ⬇ Download .keymap
+            </button>
+          </div>
+        </div>
 
         <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
           <section className="rounded-xl border border-border bg-card p-6 key-shadow">
@@ -100,6 +190,12 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               layer={layer}
               layerNames={layerNames}
               selectedPos={selectedPos}
+              isEdited={
+                selectedPos != null &&
+                edits[layerIndex]?.[selectedPos] !== undefined
+              }
+              onEditBinding={applyEdit}
+              onResetBinding={resetEdit}
             />
           </aside>
         </div>

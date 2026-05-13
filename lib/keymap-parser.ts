@@ -10,7 +10,7 @@ export function parseKeymap(source: string): KeymapDoc {
   const defines = parseDefines(stripped);
   const layers = parseLayers(stripped, defines);
   const combos = parseCombos(stripped, defines);
-  return { defines, layers, combos };
+  return { defines, layers, combos, originalText: source };
 }
 
 function stripComments(src: string): string {
