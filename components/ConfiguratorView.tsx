@@ -76,7 +76,11 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     // reflects the edit immediately. On any failure the local edit is
     // still preserved so the user can fall back to the download flow.
     if (studio.connected && studio.layers[layerIndex]) {
-      const translated = translateBinding(next, studio.behaviors);
+      const translated = translateBinding(
+        next,
+        studio.behaviors,
+        studio.layers,
+      );
       if (translated === null) {
         setStudioApplyError(
           `Studio: ${next.raw} は自動翻訳できませんでした (Download .keymap で反映してください)`,

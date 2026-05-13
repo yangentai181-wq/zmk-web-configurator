@@ -2,6 +2,7 @@ import type { Binding } from "./types";
 import type {
   StudioBehaviorBinding,
   StudioBehaviorDescriptor,
+  StudioKeymapLayer,
 } from "./use-zmk-studio";
 import { encodeKeyCode, encodeModifier } from "./zmk-keycodes";
 
@@ -17,7 +18,13 @@ import { encodeKeyCode, encodeModifier } from "./zmk-keycodes";
 export function translateBinding(
   local: Binding,
   behaviors: StudioBehaviorDescriptor[],
+  layers: StudioKeymapLayer[],
 ): StudioBehaviorBinding | null {
+  const layerIdFor = (raw: string): number | null => {
+    const idx = Number(raw);
+    if (!Number.isFinite(idx)) return null;
+    return layers[idx]?.id ?? null;
+  };
   const findBehavior = (...needles: string[]): number | null => {
     const lc = needles.map((n) => n.toLowerCase());
     const found = behaviors.find((b) => {
@@ -40,22 +47,22 @@ export function translateBinding(
     }
     case "mo": {
       const id = findBehavior("momentary", "mo");
-      const layer = Number(local.params[0]);
-      if (id === null || !Number.isFinite(layer)) return null;
-      return { behaviorId: id, param1: layer, param2: 0 };
+      const layerId = layerIdFor(local.params[0] ?? "");
+      if (id === null || layerId === null) return null;
+      return { behaviorId: id, param1: layerId, param2: 0 };
     }
     case "tog": {
       const id = findBehavior("toggle", "tog");
-      const layer = Number(local.params[0]);
-      if (id === null || !Number.isFinite(layer)) return null;
-      return { behaviorId: id, param1: layer, param2: 0 };
+      const layerId = layerIdFor(local.params[0] ?? "");
+      if (id === null || layerId === null) return null;
+      return { behaviorId: id, param1: layerId, param2: 0 };
     }
     case "lt": {
       const id = findBehavior("layer_tap", "layer tap", "lt");
-      const layer = Number(local.params[0]);
+      const layerId = layerIdFor(local.params[0] ?? "");
       const code = encodeKeyCode(local.params[1] ?? "");
-      if (id === null || !Number.isFinite(layer) || code === null) return null;
-      return { behaviorId: id, param1: layer, param2: code };
+      if (id === null || layerId === null || code === null) return null;
+      return { behaviorId: id, param1: layerId, param2: code };
     }
     case "mt": {
       const id = findBehavior("mod_tap", "mod tap", "mt");
