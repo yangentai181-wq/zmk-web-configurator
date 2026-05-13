@@ -40,6 +40,12 @@ function getHid(): HIDLike | null {
   return hid ?? null;
 }
 
+export type HidDebugFrame = {
+  at: number;
+  reportId: number;
+  bytes: number[];
+};
+
 export type HidState = {
   supported: boolean;
   device: HIDDeviceLike | null;
@@ -48,6 +54,7 @@ export type HidState = {
   defaultLayerState: number;
   lastEventAt: number | null;
   error: string | null;
+  recentNonKeyFrames: HidDebugFrame[];
 };
 
 export type HidActions = {
@@ -62,6 +69,9 @@ export function useWebHidKeyboard(): HidState & HidActions {
   const [defaultLayerState, setDefaultLayerState] = useState<number>(1);
   const [lastEventAt, setLastEventAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recentNonKeyFrames, setRecentNonKeyFrames] = useState<HidDebugFrame[]>(
+    [],
+  );
   const listenerRef = useRef<EventListener | null>(null);
 
   const supported = !!getHid();
@@ -87,6 +97,19 @@ export function useWebHidKeyboard(): HidState & HidActions {
       setDefaultLayerState(defaultLayer);
       setActiveLayerMask(mask);
       setLastEventAt(Date.now());
+    }
+    // Capture anything that isn't a normal key press so we can see whether
+    // layer events / unknown markers actually arrive from the firmware.
+    if (marker !== KEY_PACKET_MARKER) {
+      const bytes: number[] = [];
+      const take = Math.min(data.byteLength, 12);
+      for (let i = 0; i < take; i++) bytes.push(data.getUint8(i));
+      setRecentNonKeyFrames((prev) =>
+        [
+          { at: Date.now(), reportId: event.reportId ?? 0, bytes },
+          ...prev,
+        ].slice(0, 5),
+      );
     }
   }, []);
 
@@ -175,6 +198,7 @@ export function useWebHidKeyboard(): HidState & HidActions {
     defaultLayerState,
     lastEventAt,
     error,
+    recentNonKeyFrames,
     connect,
     disconnect,
   };

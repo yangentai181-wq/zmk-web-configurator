@@ -114,6 +114,56 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             layerNames={layerNames}
           />
         </div>
+
+        {hid.device && (
+          <section className="mt-6 rounded-xl border border-border bg-card p-5 key-shadow">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold">🔬 HID Debug</h2>
+              <div className="text-xs text-ink-secondary">
+                mask:{" "}
+                <code className="rounded bg-canvas px-1 font-bold text-ink-primary">
+                  0x{hid.activeLayerMask.toString(16).padStart(8, "0")}
+                </code>{" "}
+                · default:{" "}
+                <code className="rounded bg-canvas px-1 text-ink-primary">
+                  0x{hid.defaultLayerState.toString(16).padStart(8, "0")}
+                </code>{" "}
+                · highest bit:{" "}
+                <code className="rounded bg-canvas px-1 text-ink-primary">
+                  {hidActiveLayer ?? "—"}
+                </code>
+              </div>
+            </div>
+            <div className="mt-3 text-[10px] uppercase tracking-widest text-ink-muted">
+              Recent non-key inputreports (newest first)
+            </div>
+            {hid.recentNonKeyFrames.length === 0 ? (
+              <p className="mt-2 text-xs text-ink-secondary">
+                まだ 0xF1
+                以外のレポートを受信していません。レイヤーをホールド/タップして発火を試してください。
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-1 font-mono text-xs">
+                {hid.recentNonKeyFrames.map((f, i) => (
+                  <li
+                    key={`${f.at}-${i}`}
+                    className="flex gap-3 border-b border-border/60 py-1"
+                  >
+                    <span className="text-ink-muted">
+                      +{Math.max(0, Math.floor((Date.now() - f.at) / 1000))}s
+                    </span>
+                    <span className="text-ink-muted">rid={f.reportId}</span>
+                    <span>
+                      {f.bytes
+                        .map((b) => b.toString(16).padStart(2, "0"))
+                        .join(" ")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
       </main>
 
       <footer className="mx-auto max-w-6xl px-6 pb-8 pt-2 text-xs text-ink-secondary">
