@@ -1,16 +1,26 @@
 import type { KeyboardConfig } from "@/lib/types";
 
-export function StatusBar({ config }: { config: KeyboardConfig }) {
+export function StatusBar({
+  config,
+  hidConnected,
+}: {
+  config: KeyboardConfig;
+  hidConnected?: boolean;
+}) {
   const items = [
-    { label: "Combos", value: `${config.keymap.combos.length}` },
+    {
+      label: "HID",
+      value: hidConnected ? "live" : "off",
+      ok: !!hidConnected,
+    },
     { label: "Layers", value: `${config.keymap.layers.length}` },
     {
-      label: "Trackball",
+      label: "TB",
       value: config.trackball.enabled ? "on" : "off",
       ok: config.trackball.enabled,
     },
     {
-      label: "Encoder",
+      label: "ENC",
       value: config.encoder.enabled ? "on" : "off",
       ok: config.encoder.enabled,
     },

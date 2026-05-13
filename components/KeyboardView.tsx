@@ -14,12 +14,14 @@ export function KeyboardView({
   layer,
   layerNames,
   selectedPos,
+  pressed,
   onSelect,
 }: {
   layout: PhysicalKey[];
   layer: Layer;
   layerNames: string[];
   selectedPos: number | null;
+  pressed?: ReadonlySet<number>;
   onSelect: (pos: number | null) => void;
 }) {
   // Compute pixel coordinates from logical x/y; insert split gap between col 5 and col 7.
@@ -105,6 +107,7 @@ export function KeyboardView({
           if (!binding) return null;
           const cat = categorize(binding);
           const isSel = selectedPos === k.position;
+          const isPressed = pressed?.has(k.position) ?? false;
           return (
             <KeyCap
               key={k.position}
@@ -113,6 +116,7 @@ export function KeyboardView({
               label={describe(binding, layerNames)}
               category={cat}
               selected={isSel}
+              pressed={isPressed}
               onClick={() => onSelect(isSel ? null : k.position)}
             />
           );
@@ -128,6 +132,7 @@ function KeyCap({
   label,
   category,
   selected,
+  pressed,
   onClick,
 }: {
   x: number;
@@ -135,9 +140,14 @@ function KeyCap({
   label: string;
   category: ReturnType<typeof categorize>;
   selected: boolean;
+  pressed: boolean;
   onClick: () => void;
 }) {
-  const classes = categoryColor(category);
+  // pressed: solid teal fill (highest priority visual signal)
+  // selected: orange stroke (independent of pressed)
+  const classes = pressed
+    ? "fill-primary stroke-primary"
+    : categoryColor(category);
   return (
     <g
       transform={`translate(${x}, ${y})`}
@@ -152,13 +162,17 @@ function KeyCap({
           classes,
           selected ? "stroke-[3px] stroke-accent" : "stroke-[1px]",
         ].join(" ")}
-        style={{ transition: "stroke 120ms, fill 120ms" }}
+        style={{ transition: "stroke 80ms, fill 80ms" }}
       />
       <foreignObject x={4} y={4} width={KEY_W - 8} height={KEY_H - 8}>
         <div
           className={[
             "flex h-full w-full items-center justify-center text-center text-[11px] leading-tight whitespace-pre-wrap break-words",
-            selected ? "font-bold" : "font-medium",
+            pressed
+              ? "font-bold text-white"
+              : selected
+                ? "font-bold"
+                : "font-medium",
           ].join(" ")}
         >
           {label || "—"}
