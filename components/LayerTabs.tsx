@@ -24,7 +24,7 @@ export function LayerTabs({
             type="button"
             onClick={() => onChange(l.index)}
             className={[
-              "relative rounded-xl border px-4 py-2 text-sm transition",
+              "relative inline-flex h-10 items-center rounded-xl border px-4 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
               selected
                 ? "border-primary bg-primary text-white"
                 : liveActive

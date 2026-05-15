@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComboDef, PhysicalKey } from "@/lib/types";
+import { ui } from "@/lib/ui";
 
 /**
  * Compact list of currently defined combos. Each row shows the
@@ -29,17 +30,13 @@ export function CombosPanel({
   onDelete: (name: string) => void;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-5 key-shadow">
+    <section className={ui.card}>
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold">
           🔗 Combos{" "}
           <span className="text-ink-secondary">({combos.length})</span>
         </h2>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-bold text-white transition hover:bg-primary-hover"
-        >
+        <button type="button" onClick={onAdd} className={ui.ctaPrimarySmall}>
           + Add Combo
         </button>
       </div>
@@ -91,7 +88,7 @@ function ComboRow({
       : "all";
 
   return (
-    <li className="rounded-lg border border-border bg-canvas p-3">
+    <li className={ui.innerCard}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -137,17 +134,13 @@ function ComboRow({
           </div>
         </div>
         <div className="flex shrink-0 gap-1">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="rounded-lg border border-primary bg-primary px-2.5 py-1 text-xs font-bold text-white transition hover:bg-primary-hover"
-          >
+          <button type="button" onClick={onEdit} className={ui.ctaPrimarySmall}>
             Edit
           </button>
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-ink-secondary hover:bg-canvas"
+            className={ui.iconButton}
             aria-label={`Delete combo ${combo.name}`}
           >
             ×

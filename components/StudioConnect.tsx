@@ -1,6 +1,7 @@
 "use client";
 
 import type { StudioActions, StudioState } from "@/lib/use-zmk-studio";
+import { ui } from "@/lib/ui";
 
 export function StudioConnect({
   studio,
@@ -8,11 +9,7 @@ export function StudioConnect({
   studio: StudioState & StudioActions;
 }) {
   if (!studio.supported) {
-    return (
-      <div className="rounded-lg border border-border bg-canvas px-3 py-1.5 text-xs text-ink-secondary">
-        WebSerial 非対応ブラウザ
-      </div>
-    );
+    return <div className={ui.chip}>WebSerial 非対応ブラウザ</div>;
   }
 
   if (!studio.connected) {
@@ -27,7 +24,7 @@ export function StudioConnect({
           type="button"
           onClick={() => void studio.connect()}
           disabled={studio.busy}
-          className="rounded-lg border border-accent bg-accent px-3 py-1.5 text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+          className={ui.ctaAccent}
           title="Connect to ZMK Studio over USB (live editing)"
         >
           {studio.busy ? "Connecting…" : "🔌 Studio"}
@@ -37,19 +34,12 @@ export function StudioConnect({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div
-        className={[
-          "rounded-lg border px-3 py-1.5 text-xs",
-          studio.unsavedChanges
-            ? "border-accent/30 bg-orange-50 text-accent"
-            : "border-primary/30 bg-teal-50 text-primary",
-        ].join(" ")}
-      >
-        <span className="font-bold">●</span>{" "}
+    <div className="flex flex-wrap items-center gap-2">
+      <div className={studio.unsavedChanges ? ui.chipAccent : ui.chipPrimary}>
+        <span className="font-bold">●</span>
         <span className="font-bold">{studio.deviceInfo?.name ?? "Studio"}</span>
         {studio.unsavedChanges && (
-          <span className="ml-2 text-ink-muted">unsaved</span>
+          <span className="ml-1 text-ink-muted">unsaved</span>
         )}
       </div>
       {studio.unsavedChanges && (
@@ -58,7 +48,7 @@ export function StudioConnect({
             type="button"
             onClick={() => void studio.save()}
             disabled={studio.busy}
-            className="rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-bold text-white transition hover:bg-primary-hover disabled:opacity-40"
+            className={ui.ctaPrimarySmall}
             title="Persist pending changes to flash"
           >
             💾 Save
@@ -67,7 +57,7 @@ export function StudioConnect({
             type="button"
             onClick={() => void studio.discard()}
             disabled={studio.busy}
-            className="rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-ink-secondary hover:bg-canvas"
+            className={ui.ctaSecondarySmall}
             title="Drop pending edits"
           >
             Discard
@@ -77,8 +67,9 @@ export function StudioConnect({
       <button
         type="button"
         onClick={() => void studio.disconnect()}
-        className="rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-ink-secondary hover:bg-canvas"
+        className={ui.iconButton}
         title="Disconnect"
+        aria-label="Disconnect Studio"
       >
         ×
       </button>

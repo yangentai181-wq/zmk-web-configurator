@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ComboDef } from "@/lib/types";
 import { parseRawBinding } from "@/lib/keymap-generator";
+import { ui } from "@/lib/ui";
 
 /**
  * Form for creating or editing a single combo. key-positions is set
@@ -143,7 +144,7 @@ export function ComboEditor({
           <button
             type="button"
             onClick={onPickKeys}
-            className="rounded-lg border border-primary bg-primary px-3 py-2 text-xs font-bold text-white transition hover:bg-primary-hover"
+            className={ui.ctaPrimarySmall}
           >
             Pick keys
           </button>
@@ -220,7 +221,7 @@ export function ComboEditor({
                     type="button"
                     onClick={() => toggleLayer(idx)}
                     className={[
-                      "rounded-lg border px-2 py-1 text-xs transition",
+                      "inline-flex items-center justify-center rounded-lg border px-2.5 py-1 text-xs transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
                       on
                         ? "border-primary bg-primary text-white"
                         : "border-border bg-card text-ink-primary hover:bg-canvas",
@@ -249,15 +250,11 @@ export function ComboEditor({
           type="button"
           onClick={() => onApply(buildCombo())}
           disabled={!formValid}
-          className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className={`${ui.ctaPrimary} flex-1`}
         >
           {initial ? "Save" : "Add"}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-ink-secondary hover:bg-canvas"
-        >
+        <button type="button" onClick={onCancel} className={ui.ctaSecondary}>
           Cancel
         </button>
       </div>
@@ -270,8 +267,7 @@ function defaultName(positions: number[]): string {
   return `combo_${[...positions].sort((a, b) => a - b).join("_")}`;
 }
 
-const inputClass =
-  "h-10 w-full rounded-lg border border-border bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
+const inputClass = ui.input;
 
 function Field({
   label,
@@ -282,9 +278,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs uppercase tracking-widest text-ink-muted">
-        {label}
-      </label>
+      <label className={ui.fieldLabel}>{label}</label>
       {children}
     </div>
   );

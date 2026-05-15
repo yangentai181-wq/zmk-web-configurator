@@ -16,6 +16,7 @@ import { StatusBar } from "./StatusBar";
 import { HidConnect } from "./HidConnect";
 import { CombosPanel } from "./CombosPanel";
 import { ComboEditor } from "./ComboEditor";
+import { ui } from "@/lib/ui";
 
 export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
   const [layerIndex, setLayerIndex] = useState(0);
@@ -263,16 +264,16 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               setSelectedPos(null);
             }}
           />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {editCount > 0 && (
               <>
-                <span className="rounded-lg border border-accent/30 bg-orange-50 px-3 py-1.5 text-xs text-accent">
+                <span className={ui.chipAccent}>
                   <span className="font-bold">{editCount}</span> edited
                 </span>
                 <button
                   type="button"
                   onClick={resetAll}
-                  className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-ink-secondary hover:bg-canvas"
+                  className={ui.ctaSecondarySmall}
                 >
                   Reset all
                 </button>
@@ -281,7 +282,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             <button
               type="button"
               onClick={downloadKeymap}
-              className="rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-bold text-white transition hover:bg-primary-hover"
+              className={ui.ctaPrimarySmall}
               title="Download a regenerated .keymap with your edits applied"
             >
               ⬇ Download .keymap
@@ -290,7 +291,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-          <section className="rounded-xl border border-border bg-card p-6 key-shadow">
+          <section className={`${ui.card} p-6`}>
             <KeyboardView
               layout={config.layout}
               layer={layer}
@@ -308,7 +309,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               onToggleComboKey={toggleComboKey}
             />
             {pickingKeys && (
-              <div className="mt-3 flex items-center justify-between rounded-lg border border-accent/30 bg-orange-50 px-3 py-2 text-xs">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-accent/30 bg-orange-50 px-3 py-2 text-xs">
                 <span className="text-accent">
                   🎯 コンボ用キーを選択中 — クリックで追加/解除 (
                   {comboEditing?.positions.length ?? 0} 選択)
@@ -317,7 +318,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                   type="button"
                   onClick={() => setPickingKeys(false)}
                   disabled={(comboEditing?.positions.length ?? 0) < 2}
-                  className="rounded-lg border border-accent bg-accent px-3 py-1 text-xs font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className={ui.ctaAccent}
                 >
                   Done
                 </button>
@@ -325,7 +326,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             )}
           </section>
 
-          <aside className="rounded-xl border border-border bg-card p-5 key-shadow">
+          <aside className={ui.card}>
             {comboEditing && !pickingKeys ? (
               <ComboEditor
                 initial={
@@ -382,7 +383,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
         </div>
 
         {hid.device && (
-          <details className="mt-6 rounded-xl border border-border bg-card p-5 key-shadow">
+          <details className={`mt-6 ${ui.card}`}>
             <summary className="flex cursor-pointer items-center justify-between text-sm font-bold">
               <span>🔬 HID Debug</span>
               <span className="text-xs font-normal text-ink-secondary">
@@ -392,7 +393,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             </summary>
 
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="rounded-lg border border-border bg-canvas p-3 text-xs">
+              <div className={`${ui.innerCard} text-xs`}>
                 <div className="text-[10px] uppercase tracking-widest text-ink-muted">
                   Last pointer frame (0xF2)
                 </div>
@@ -416,7 +417,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                 )}
               </div>
 
-              <div className="rounded-lg border border-border bg-canvas p-3 text-xs">
+              <div className={`${ui.innerCard} text-xs`}>
                 <div className="text-[10px] uppercase tracking-widest text-ink-muted">
                   Last encoder tick (0xF3)
                 </div>

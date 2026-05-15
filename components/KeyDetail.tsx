@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Binding, Layer, PhysicalKey } from "@/lib/types";
 import { categorize, describe } from "@/lib/zmk-bindings";
 import { BindingEditor } from "./BindingEditor";
+import { ui } from "@/lib/ui";
 
 export function KeyDetail({
   layout,
@@ -116,7 +117,7 @@ export function KeyDetail({
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                className="flex-1 rounded-lg border border-primary bg-primary px-3 py-2 text-sm font-bold text-white transition hover:bg-primary-hover"
+                className={`${ui.ctaPrimary} flex-1`}
               >
                 Edit
               </button>
@@ -124,7 +125,7 @@ export function KeyDetail({
                 <button
                   type="button"
                   onClick={() => onResetBinding(selectedPos)}
-                  className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-ink-secondary hover:bg-canvas"
+                  className={ui.ctaSecondary}
                   title="Revert to original"
                 >
                   Reset

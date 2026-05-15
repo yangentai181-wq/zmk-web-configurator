@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Binding } from "@/lib/types";
 import { makeBinding, parseRawBinding } from "@/lib/keymap-generator";
+import { ui } from "@/lib/ui";
 
 /**
  * Edits a single Binding. The set of behaviors covered by the form is
@@ -92,13 +93,11 @@ export function BindingEditor({
 
   return (
     <div className="space-y-3">
-      <label className="block text-xs uppercase tracking-widest text-ink-muted">
-        Behavior
-      </label>
+      <label className={ui.fieldLabel}>Behavior</label>
       <select
         value={mode}
         onChange={(e) => setMode(e.target.value as EditorMode)}
-        className="h-10 w-full rounded-lg border border-border bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        className={ui.input}
       >
         <option value="kp">Key (kp)</option>
         <option value="mo">Layer Hold (mo)</option>
@@ -197,27 +196,21 @@ export function BindingEditor({
         </Field>
       )}
 
-      <div className="rounded-lg border border-border bg-canvas p-2 text-xs">
-        <div className="text-[10px] uppercase tracking-widest text-ink-muted">
-          Preview
-        </div>
+      <div className={`${ui.innerCard} text-xs`}>
+        <div className={ui.microLabel}>Preview</div>
         <code className="mt-1 block break-all font-mono">{preview}</code>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-2">
         <button
           type="button"
           onClick={() => next && onApply(next)}
           disabled={!isValid}
-          className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className={`${ui.ctaPrimary} flex-1`}
         >
           Apply
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-ink-secondary hover:bg-canvas"
-        >
+        <button type="button" onClick={onCancel} className={ui.ctaSecondary}>
           Cancel
         </button>
       </div>
@@ -243,8 +236,7 @@ function inferMode(binding: Binding): EditorMode {
   return "custom";
 }
 
-const inputClass =
-  "h-10 w-full rounded-lg border border-border bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
+const inputClass = ui.input;
 
 function Field({
   label,
@@ -255,9 +247,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs uppercase tracking-widest text-ink-muted">
-        {label}
-      </label>
+      <label className={ui.fieldLabel}>{label}</label>
       {children}
     </div>
   );
