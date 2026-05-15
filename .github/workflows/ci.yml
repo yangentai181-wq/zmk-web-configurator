@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: typecheck / test / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        # --legacy-peer-deps: required because @zmkfirmware/zmk-studio-ts-client
+        # ships an older React peer range that conflicts with React 19.
+        # --ignore-scripts: that same package has a postinstall hook that
+        # invokes the global `run-script-os` binary; skipping is harmless.
+        run: npm ci --legacy-peer-deps --ignore-scripts
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (Vitest)
+        run: npm test
+
+      - name: Next.js production build
+        run: npm run build
