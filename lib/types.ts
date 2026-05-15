@@ -46,7 +46,14 @@ export type ComboDef = {
   keyPositions: number[];
   bindings: string;
   timeoutMs?: number;
+  /**
+   * `undefined` means "all layers" (ZMK's default when the `layers`
+   * property is omitted). An explicit empty array is treated the same
+   * way by ZMK, so we normalize to `undefined`.
+   */
   layers?: number[];
+  requirePriorIdleMs?: number;
+  slowRelease?: boolean;
 };
 
 export type ConfEntry = {

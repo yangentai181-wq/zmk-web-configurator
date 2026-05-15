@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Binding, KeyboardConfig, Layer } from "@/lib/types";
+import type { Binding, ComboDef, KeyboardConfig, Layer } from "@/lib/types";
 import { useWebHidKeyboard } from "@/lib/use-webhid";
 import { useZmkStudio } from "@/lib/use-zmk-studio";
 import { generateKeymap } from "@/lib/keymap-generator";
@@ -14,6 +14,8 @@ import { TrackballPanel } from "./TrackballPanel";
 import { EncoderPanel } from "./EncoderPanel";
 import { StatusBar } from "./StatusBar";
 import { HidConnect } from "./HidConnect";
+import { CombosPanel } from "./CombosPanel";
+import { ComboEditor } from "./ComboEditor";
 
 export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
   const [layerIndex, setLayerIndex] = useState(0);
@@ -64,6 +66,84 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
   );
 
   const [studioApplyError, setStudioApplyError] = useState<string | null>(null);
+
+  // --- Combos state ---
+  const [combos, setCombos] = useState<ComboDef[]>(config.keymap.combos);
+  // Track per-combo edited status by comparing against the original
+  // parsed combos by name. New combos are "edited" too.
+  const originalCombosByName = useMemo(() => {
+    const m = new Map<string, ComboDef>();
+    for (const c of config.keymap.combos) m.set(c.name, c);
+    return m;
+  }, [config.keymap.combos]);
+  const editedComboNames = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of combos) {
+      const orig = originalCombosByName.get(c.name);
+      if (!orig || JSON.stringify(orig) !== JSON.stringify(c)) s.add(c.name);
+    }
+    // Also flag deleted ones, but they're already gone from `combos`
+    // and have no row to badge — skip.
+    return s;
+  }, [combos, originalCombosByName]);
+  const allComboPositions = useMemo(() => {
+    const set = new Set<number>();
+    for (const c of combos) for (const p of c.keyPositions) set.add(p);
+    return set;
+  }, [combos]);
+  // Editor state: which combo is being authored (null = no editor open)
+  type ComboEditingState =
+    | { mode: "new"; positions: number[] }
+    | { mode: "edit"; name: string; positions: number[] };
+  const [comboEditing, setComboEditing] = useState<ComboEditingState | null>(
+    null,
+  );
+  // While `pickingKeys` is true, the keyboard view is in multi-select
+  // mode and routes clicks to `selectedComboKeys` instead of moving
+  // `selectedPos`.
+  const [pickingKeys, setPickingKeys] = useState(false);
+
+  function startNewCombo() {
+    setComboEditing({ mode: "new", positions: [] });
+    setPickingKeys(true);
+  }
+  function startEditCombo(name: string) {
+    const c = combos.find((x) => x.name === name);
+    if (!c) return;
+    setComboEditing({ mode: "edit", name, positions: [...c.keyPositions] });
+    setPickingKeys(false);
+  }
+  function deleteCombo(name: string) {
+    setCombos((prev) => prev.filter((c) => c.name !== name));
+  }
+  function applyCombo(next: ComboDef) {
+    setCombos((prev) => {
+      if (comboEditing?.mode === "edit") {
+        return prev.map((c) => (c.name === comboEditing.name ? next : c));
+      }
+      return [...prev, next];
+    });
+    setComboEditing(null);
+    setPickingKeys(false);
+  }
+  function cancelCombo() {
+    setComboEditing(null);
+    setPickingKeys(false);
+  }
+  function toggleComboKey(pos: number) {
+    if (!comboEditing) return;
+    setComboEditing((prev) => {
+      if (!prev) return prev;
+      const set = new Set(prev.positions);
+      if (set.has(pos)) set.delete(pos);
+      else set.add(pos);
+      const positions = Array.from(set).sort((a, b) => a - b);
+      return { ...prev, positions };
+    });
+  }
+  function returnToPicking() {
+    setPickingKeys(true);
+  }
 
   function applyEdit(pos: number, next: Binding) {
     setEdits((prev) => {
@@ -121,6 +201,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     const docWithEdits = {
       ...config.keymap,
       layers: effectiveLayers,
+      combos,
     };
     const text = generateKeymap(docWithEdits);
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
@@ -218,24 +299,73 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               pressed={hid.pressed}
               pointer={hid.pointer}
               encoders={hid.encoders}
+              comboSelectMode={pickingKeys}
+              selectedComboKeys={
+                comboEditing ? new Set(comboEditing.positions) : undefined
+              }
+              comboHighlightKeys={pickingKeys ? undefined : allComboPositions}
               onSelect={setSelectedPos}
+              onToggleComboKey={toggleComboKey}
             />
+            {pickingKeys && (
+              <div className="mt-3 flex items-center justify-between rounded-lg border border-accent/30 bg-orange-50 px-3 py-2 text-xs">
+                <span className="text-accent">
+                  🎯 コンボ用キーを選択中 — クリックで追加/解除 (
+                  {comboEditing?.positions.length ?? 0} 選択)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPickingKeys(false)}
+                  disabled={(comboEditing?.positions.length ?? 0) < 2}
+                  className="rounded-lg border border-accent bg-accent px-3 py-1 text-xs font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Done
+                </button>
+              </div>
+            )}
           </section>
 
           <aside className="rounded-xl border border-border bg-card p-5 key-shadow">
-            <KeyDetail
-              layout={config.layout}
-              layer={layer}
-              layerNames={layerNames}
-              selectedPos={selectedPos}
-              isEdited={
-                selectedPos != null &&
-                edits[layerIndex]?.[selectedPos] !== undefined
-              }
-              onEditBinding={applyEdit}
-              onResetBinding={resetEdit}
-            />
+            {comboEditing && !pickingKeys ? (
+              <ComboEditor
+                initial={
+                  comboEditing.mode === "edit"
+                    ? (combos.find((c) => c.name === comboEditing.name) ?? null)
+                    : null
+                }
+                keyPositions={comboEditing.positions}
+                layerNames={layerNames}
+                onApply={applyCombo}
+                onCancel={cancelCombo}
+                onPickKeys={returnToPicking}
+              />
+            ) : (
+              <KeyDetail
+                layout={config.layout}
+                layer={layer}
+                layerNames={layerNames}
+                selectedPos={selectedPos}
+                isEdited={
+                  selectedPos != null &&
+                  edits[layerIndex]?.[selectedPos] !== undefined
+                }
+                onEditBinding={applyEdit}
+                onResetBinding={resetEdit}
+              />
+            )}
           </aside>
+        </div>
+
+        <div className="mt-6">
+          <CombosPanel
+            combos={combos}
+            layerNames={layerNames}
+            layout={config.layout}
+            isEditedSet={editedComboNames}
+            onAdd={startNewCombo}
+            onEdit={startEditCombo}
+            onDelete={deleteCombo}
+          />
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">

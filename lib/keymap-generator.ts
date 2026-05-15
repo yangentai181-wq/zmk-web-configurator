@@ -1,4 +1,4 @@
-import type { Binding, KeymapDoc, Layer } from "./types";
+import type { Binding, ComboDef, KeymapDoc, Layer } from "./types";
 
 /**
  * Generates a new .keymap text from the parsed KeymapDoc, by substituting
@@ -17,6 +17,7 @@ export function generateKeymap(doc: KeymapDoc): string {
   for (const layer of doc.layers) {
     result = replaceLayerBindings(result, layer);
   }
+  result = replaceCombosBlock(result, doc.combos);
   return result;
 }
 
@@ -32,6 +33,88 @@ function replaceLayerBindings(source: string, layer: Layer): string {
   return source.replace(re, (_m, pre: string, _old: string, post: string) => {
     return `${pre}\n${rendered}\n            ${post}`;
   });
+}
+
+/**
+ * Replace the entire `combos { ... };` block content with newly rendered
+ * combo entries. Unlike the per-layer bindings substitution, combos
+ * survive as a unit: we rewrite all of them at once, which means
+ * comments inside the original combos block are lost. The trade-off
+ * keeps the generator simple — preserving comments would require a
+ * structural parse that we don't have.
+ *
+ * If the source has no combos block and there are combos to write, we
+ * inject a fresh block just before the closing brace of the top-level
+ * `/ { ... };` node.
+ */
+function replaceCombosBlock(source: string, combos: ComboDef[]): string {
+  const renderedInner = combos.map(renderCombo).join("\n\n");
+  const blockBody = `\n        compatible = "zmk,combos";${
+    renderedInner ? "\n\n" + indent(renderedInner, 8) : ""
+  }\n    `;
+  const newBlock = `combos {${blockBody}};`;
+
+  // Try to find an existing combos block first. Match the whole
+  // `combos { ... };` greedy enough to swallow nested braces by
+  // counting them manually rather than relying on regex.
+  const startMatch = /\bcombos\s*\{/.exec(source);
+  if (startMatch) {
+    const start = startMatch.index;
+    const bodyStart = start + startMatch[0].length;
+    let depth = 1;
+    let i = bodyStart;
+    for (; i < source.length; i++) {
+      const ch = source[i];
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) break;
+      }
+    }
+    if (depth !== 0) return source; // unbalanced — give up
+    // Include the trailing `};` if present
+    let end = i + 1;
+    if (source[end] === ";") end++;
+    return source.slice(0, start) + newBlock + source.slice(end);
+  }
+
+  // No existing combos block. Inject before the closing `};` of the
+  // outermost `/ { ... };` node.
+  if (combos.length === 0) return source;
+  const rootClose = /\}\s*;\s*$/.exec(source);
+  if (!rootClose) return source;
+  const insertAt = rootClose.index;
+  return (
+    source.slice(0, insertAt) + `    ${newBlock}\n` + source.slice(insertAt)
+  );
+}
+
+function renderCombo(c: ComboDef): string {
+  const lines: string[] = [`${c.name} {`];
+  if (c.timeoutMs !== undefined) {
+    lines.push(`    timeout-ms = <${c.timeoutMs}>;`);
+  }
+  if (c.requirePriorIdleMs !== undefined) {
+    lines.push(`    require-prior-idle-ms = <${c.requirePriorIdleMs}>;`);
+  }
+  lines.push(`    key-positions = <${c.keyPositions.join(" ")}>;`);
+  lines.push(`    bindings = <${c.bindings}>;`);
+  if (c.layers && c.layers.length > 0) {
+    lines.push(`    layers = <${c.layers.join(" ")}>;`);
+  }
+  if (c.slowRelease) {
+    lines.push(`    slow-release;`);
+  }
+  lines.push(`};`);
+  return lines.join("\n");
+}
+
+function indent(text: string, spaces: number): string {
+  const pad = " ".repeat(spaces);
+  return text
+    .split("\n")
+    .map((line) => (line.length > 0 ? pad + line : line))
+    .join("\n");
 }
 
 function renderBindings(bindings: Binding[]): string {

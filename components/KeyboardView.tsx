@@ -19,7 +19,11 @@ export function KeyboardView({
   pressed,
   pointer,
   encoders,
+  comboSelectMode,
+  selectedComboKeys,
+  comboHighlightKeys,
   onSelect,
+  onToggleComboKey,
 }: {
   layout: PhysicalKey[];
   layer: Layer;
@@ -28,7 +32,13 @@ export function KeyboardView({
   pressed?: ReadonlySet<number>;
   pointer?: PointerSample | null;
   encoders?: Readonly<Record<number, EncoderSample>>;
+  /** When true, key clicks toggle membership in `selectedComboKeys` instead of moving `selectedPos`. */
+  comboSelectMode?: boolean;
+  selectedComboKeys?: ReadonlySet<number>;
+  /** Keys that belong to existing combos (faint outline so users can see what's already used). */
+  comboHighlightKeys?: ReadonlySet<number>;
   onSelect: (pos: number | null) => void;
+  onToggleComboKey?: (pos: number) => void;
 }) {
   // Tick the wall clock every 80ms so the live indicators fade out smoothly
   // even when no new HID frame arrives.
@@ -91,8 +101,12 @@ export function KeyboardView({
           const binding = layer.bindings[k.position];
           if (!binding) return null;
           const cat = categorize(binding);
-          const isSel = selectedPos === k.position;
           const isPressed = pressed?.has(k.position) ?? false;
+          const inCombo = comboSelectMode
+            ? (selectedComboKeys?.has(k.position) ?? false)
+            : false;
+          const inExistingCombo = comboHighlightKeys?.has(k.position) ?? false;
+          const isSel = !comboSelectMode && selectedPos === k.position;
           return (
             <KeyCap
               key={k.position}
@@ -102,7 +116,13 @@ export function KeyboardView({
               category={cat}
               selected={isSel}
               pressed={isPressed}
-              onClick={() => onSelect(isSel ? null : k.position)}
+              comboSelected={inCombo}
+              comboHinted={inExistingCombo}
+              onClick={() =>
+                comboSelectMode
+                  ? onToggleComboKey?.(k.position)
+                  : onSelect(isSel ? null : k.position)
+              }
             />
           );
         })}
@@ -118,6 +138,8 @@ function KeyCap({
   category,
   selected,
   pressed,
+  comboSelected,
+  comboHinted,
   onClick,
 }: {
   x: number;
@@ -126,13 +148,18 @@ function KeyCap({
   category: ReturnType<typeof categorize>;
   selected: boolean;
   pressed: boolean;
+  comboSelected?: boolean;
+  comboHinted?: boolean;
   onClick: () => void;
 }) {
-  // pressed: solid teal fill (highest priority visual signal)
-  // selected: orange stroke (independent of pressed)
+  // visual priority:
+  //   pressed (teal fill, live)  >  comboSelected (orange fill, picking)
+  //   >  selected (orange stroke, detail view)  >  base color
   const classes = pressed
     ? "fill-primary stroke-primary"
-    : categoryColor(category);
+    : comboSelected
+      ? "fill-accent stroke-accent"
+      : categoryColor(category);
   return (
     <g
       transform={`translate(${x}, ${y})`}
@@ -145,7 +172,11 @@ function KeyCap({
         rx={10}
         className={[
           classes,
-          selected ? "stroke-[3px] stroke-accent" : "stroke-[1px]",
+          selected
+            ? "stroke-[3px] stroke-accent"
+            : comboHinted
+              ? "stroke-[2px] stroke-accent/40"
+              : "stroke-[1px]",
         ].join(" ")}
         style={{ transition: "stroke 80ms, fill 80ms" }}
       />

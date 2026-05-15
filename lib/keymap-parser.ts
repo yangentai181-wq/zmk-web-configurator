@@ -81,11 +81,28 @@ function parseCombos(
       .filter((n) => Number.isFinite(n));
     const bindings = extractAssignment(body, "bindings") || "";
     const timeout = extractAssignment(body, "timeout-ms");
+    const requirePriorIdle = extractAssignment(body, "require-prior-idle-ms");
+    const layersRaw = extractAssignment(body, "layers");
+    const layers = layersRaw
+      ? layersRaw
+          .split(/\s+/)
+          .filter(Boolean)
+          .map(Number)
+          .filter((n) => Number.isFinite(n))
+      : undefined;
+    // `slow-release;` is a value-less property, so extractAssignment won't
+    // find it. Use a regex that ignores the trailing semicolon.
+    const slowRelease = /\bslow-release\s*;/.test(body);
     items.push({
       name,
       keyPositions,
       bindings,
       timeoutMs: timeout ? Number(timeout) : undefined,
+      layers: layers && layers.length > 0 ? layers : undefined,
+      requirePriorIdleMs: requirePriorIdle
+        ? Number(requirePriorIdle)
+        : undefined,
+      slowRelease: slowRelease || undefined,
     });
   }
   return items;
