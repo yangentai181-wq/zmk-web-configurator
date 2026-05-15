@@ -66,7 +66,25 @@ export type TrackballConfig = {
   enabled: boolean;
   scrollLayer?: number;
   automouseLayer?: number;
+  /** Raw entries from .conf for everything we don't expose via typed
+   * fields below. Generator falls back to these for unknown keys. */
   settings: ConfEntry[];
+  /** Original .conf text for the central shield; used for round-tripping
+   * by replacing matching lines and preserving everything else. */
+  originalConfText: string;
+  /** Source filename so we can offer a sensible default for download. */
+  confFilename: string;
+
+  // --- Typed editable fields (PMW3610) ---
+  cpi?: number; // 200..3200, step 200
+  cpiDividor?: number; // 1..100
+  scrollTick?: number;
+  automouseTimeoutMs?: number;
+  invertX?: boolean;
+  invertY?: boolean;
+  invertScrollX?: boolean;
+  smartAlgorithm?: boolean;
+  pollingRate?: 125 | 250;
 };
 
 export type EncoderConfig = {

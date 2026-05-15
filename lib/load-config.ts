@@ -31,7 +31,12 @@ export async function loadKeyboardConfig(): Promise<KeyboardConfig> {
   const confREntries = parseConf(confR);
   const confLEntries = parseConf(confL);
 
-  const trackball = buildTrackball(confREntries, overlayR);
+  const trackball = buildTrackball(
+    confREntries,
+    overlayR,
+    confR,
+    "minimal-keys_R.conf",
+  );
   const encoder = buildEncoder(confLEntries, overlayL);
   const name =
     findConf(confREntries, "CONFIG_ZMK_KEYBOARD_NAME")?.replace(/^"|"$/g, "") ||
@@ -78,6 +83,8 @@ function parseLayoutJson(text: string): {
 function buildTrackball(
   conf: ReturnType<typeof parseConf>,
   overlay: string,
+  originalConfText: string,
+  confFilename: string,
 ): TrackballConfig {
   const enabled = findConf(conf, "CONFIG_PMW3610") === "y";
   const block = extractNodeBlock(overlay, "trackball");
@@ -92,12 +99,31 @@ function buildTrackball(
     "CONFIG_ZMK_POINTING",
     "CONFIG_SPI",
   ]);
+  const pollingRate =
+    findConf(conf, "CONFIG_PMW3610_POLLING_RATE_125") === "y"
+      ? 125
+      : findConf(conf, "CONFIG_PMW3610_POLLING_RATE_250") === "y"
+        ? 250
+        : undefined;
   return {
     driver: "PMW3610",
     enabled,
     scrollLayer,
     automouseLayer,
     settings,
+    originalConfText,
+    confFilename,
+    cpi: toNum(findConf(conf, "CONFIG_PMW3610_CPI")),
+    cpiDividor: toNum(findConf(conf, "CONFIG_PMW3610_CPI_DIVIDOR")),
+    scrollTick: toNum(findConf(conf, "CONFIG_PMW3610_SCROLL_TICK")),
+    automouseTimeoutMs: toNum(
+      findConf(conf, "CONFIG_PMW3610_AUTOMOUSE_TIMEOUT_MS"),
+    ),
+    invertX: findConf(conf, "CONFIG_PMW3610_INVERT_X") === "y",
+    invertY: findConf(conf, "CONFIG_PMW3610_INVERT_Y") === "y",
+    invertScrollX: findConf(conf, "CONFIG_PMW3610_INVERT_SCROLL_X") === "y",
+    smartAlgorithm: findConf(conf, "CONFIG_PMW3610_SMART_ALGORITHM") === "y",
+    pollingRate,
   };
 }
 

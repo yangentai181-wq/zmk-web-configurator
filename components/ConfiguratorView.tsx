@@ -5,7 +5,9 @@ import type { Binding, ComboDef, KeyboardConfig, Layer } from "@/lib/types";
 import { useWebHidKeyboard } from "@/lib/use-webhid";
 import { useZmkStudio } from "@/lib/use-zmk-studio";
 import { generateKeymap } from "@/lib/keymap-generator";
+import { generateConf } from "@/lib/conf-generator";
 import { translateBinding } from "@/lib/translate-binding";
+import type { TrackballEdits } from "./TrackballEditor";
 import { StudioConnect } from "./StudioConnect";
 import { KeyboardView } from "./KeyboardView";
 import { LayerTabs } from "./LayerTabs";
@@ -67,6 +69,60 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
   );
 
   const [studioApplyError, setStudioApplyError] = useState<string | null>(null);
+
+  // --- Trackball state ---
+  const [trackballEdits, setTrackballEdits] = useState<TrackballEdits>({});
+  const effectiveTrackball = useMemo(
+    () => ({ ...config.trackball, ...trackballEdits }),
+    [config.trackball, trackballEdits],
+  );
+  const editedTrackballFields = useMemo(
+    () => new Set(Object.keys(trackballEdits)),
+    [trackballEdits],
+  );
+
+  function applyTrackballEdits(next: TrackballEdits) {
+    setTrackballEdits((prev) => ({ ...prev, ...next }));
+  }
+  function resetTrackballEdits() {
+    setTrackballEdits({});
+  }
+
+  function downloadConf() {
+    const overrides: Record<string, string | null> = {};
+    if (trackballEdits.cpi !== undefined)
+      overrides.CONFIG_PMW3610_CPI = String(trackballEdits.cpi);
+    if (trackballEdits.cpiDividor !== undefined)
+      overrides.CONFIG_PMW3610_CPI_DIVIDOR = String(trackballEdits.cpiDividor);
+    if (trackballEdits.scrollTick !== undefined)
+      overrides.CONFIG_PMW3610_SCROLL_TICK = String(trackballEdits.scrollTick);
+    if (trackballEdits.automouseTimeoutMs !== undefined)
+      overrides.CONFIG_PMW3610_AUTOMOUSE_TIMEOUT_MS = String(
+        trackballEdits.automouseTimeoutMs,
+      );
+    if (trackballEdits.invertX !== undefined)
+      overrides.CONFIG_PMW3610_INVERT_X = trackballEdits.invertX ? "y" : "n";
+    if (trackballEdits.invertY !== undefined)
+      overrides.CONFIG_PMW3610_INVERT_Y = trackballEdits.invertY ? "y" : "n";
+    if (trackballEdits.invertScrollX !== undefined)
+      overrides.CONFIG_PMW3610_INVERT_SCROLL_X = trackballEdits.invertScrollX
+        ? "y"
+        : "n";
+    if (trackballEdits.smartAlgorithm !== undefined)
+      overrides.CONFIG_PMW3610_SMART_ALGORITHM = trackballEdits.smartAlgorithm
+        ? "y"
+        : "n";
+    if (trackballEdits.pollingRate !== undefined) {
+      // Polling rate is a Kconfig choice — set the picked one to y and
+      // null out the other so the choice resolves cleanly.
+      overrides.CONFIG_PMW3610_POLLING_RATE_125 =
+        trackballEdits.pollingRate === 125 ? "y" : null;
+      overrides.CONFIG_PMW3610_POLLING_RATE_250 =
+        trackballEdits.pollingRate === 250 ? "y" : null;
+    }
+    const text = generateConf(config.trackball.originalConfText, overrides);
+    saveFile(text, config.trackball.confFilename, "text/plain;charset=utf-8");
+  }
 
   // --- Combos state ---
   const [combos, setCombos] = useState<ComboDef[]>(config.keymap.combos);
@@ -205,15 +261,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
       combos,
     };
     const text = generateKeymap(docWithEdits);
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${config.name}.keymap`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    saveFile(text, `${config.name}.keymap`, "text/plain;charset=utf-8");
   }
 
   const activeLayers = useMemo(() => {
@@ -287,6 +335,26 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             >
               ⬇ Download .keymap
             </button>
+            {editedTrackballFields.size > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={resetTrackballEdits}
+                  className={ui.ctaSecondarySmall}
+                  title="Discard trackball sensitivity edits"
+                >
+                  Reset trackball
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadConf}
+                  className={ui.ctaPrimarySmall}
+                  title={`Download ${config.trackball.confFilename} with sensitivity edits applied`}
+                >
+                  ⬇ Download {config.trackball.confFilename}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -371,8 +439,10 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <TrackballPanel
-            trackball={config.trackball}
+            trackball={effectiveTrackball}
             layerNames={layerNames}
+            edited={editedTrackballFields}
+            onEdit={applyTrackballEdits}
           />
           <EncoderPanel
             encoder={config.encoder}
@@ -479,6 +549,18 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
       </footer>
     </div>
   );
+}
+
+function saveFile(text: string, filename: string, mime: string) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function highestBitIndex(mask: number): number | null {
