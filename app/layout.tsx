@@ -1,9 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ZMK Web Configurator",
   description: "Read-only visualizer for ZMK split keyboard configurations",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Cover the iOS notch / home indicator area so safe-area-inset-* yields
+  // non-zero values for the mobile action bar.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -18,6 +18,7 @@ import { StatusBar } from "./StatusBar";
 import { HidConnect } from "./HidConnect";
 import { CombosPanel } from "./CombosPanel";
 import { ComboEditor } from "./ComboEditor";
+import { MobileActionBar } from "./MobileActionBar";
 import { ui } from "@/lib/ui";
 
 export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
@@ -288,15 +289,20 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               </span>
             </h1>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="hidden flex-wrap items-center gap-3 md:flex">
             <StatusBar config={config} hidConnected={!!hid.device} />
             <HidConnect hid={hid} />
             <StudioConnect studio={studio} />
           </div>
         </div>
+        {/* Mobile-only secondary row: keep status visible, hide CTAs (they
+            live in the bottom action bar). */}
+        <div className="mx-auto block max-w-6xl px-6 pb-4 md:hidden">
+          <StatusBar config={config} hidConnected={!!hid.device} />
+        </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-6">
+      <main className="mx-auto max-w-6xl px-6 py-6 pb-32 md:pb-6">
         {studioApplyError && (
           <div className="mb-3 rounded-lg border border-status-warn/30 bg-red-50 px-3 py-2 text-xs text-status-warn">
             {studioApplyError}
@@ -542,11 +548,54 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
         )}
       </main>
 
-      <footer className="mx-auto max-w-6xl px-6 pb-8 pt-2 text-xs text-ink-secondary">
+      <footer className="mx-auto max-w-6xl px-6 pb-8 pt-2 text-xs text-ink-secondary md:pb-8 pb-32">
         {hid.device
           ? "Live input monitor active · keys highlight on press · current layer auto-follows"
           : "Read-only visualizer · click Connect Keyboard to enable live input monitoring"}
       </footer>
+
+      <MobileActionBar
+        {...(pickingKeys
+          ? {
+              info: (
+                <span className="text-accent">
+                  🎯 picking · {comboEditing?.positions.length ?? 0} selected
+                </span>
+              ),
+              primary: {
+                label: "Done",
+                onClick: () => setPickingKeys(false),
+                disabled: (comboEditing?.positions.length ?? 0) < 2,
+              },
+              secondary: {
+                label: "Cancel",
+                onClick: cancelCombo,
+              },
+            }
+          : {
+              info: (
+                <>
+                  {editCount > 0 || editedComboNames.size > 0
+                    ? `${editCount + editedComboNames.size} edits pending`
+                    : "ready"}
+                </>
+              ),
+              primary: {
+                label: "⬇ .keymap",
+                onClick: downloadKeymap,
+                title: "Download regenerated .keymap",
+              },
+              secondary: hid.device
+                ? undefined
+                : hid.supported
+                  ? {
+                      label: "Connect",
+                      onClick: () => void hid.connect(),
+                      title: "Connect Keyboard via WebHID",
+                    }
+                  : undefined,
+            })}
+      />
     </div>
   );
 }

@@ -27,3 +27,10 @@ button {
     0 1px 0 0 rgba(15, 23, 42, 0.06),
     0 1px 2px 0 rgba(15, 23, 42, 0.04);
 }
+
+/* Bottom padding that respects the device's safe area (iOS home indicator
+   etc.) while still keeping a reasonable minimum on desktop browsers
+   where env(safe-area-inset-bottom) resolves to 0. */
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
