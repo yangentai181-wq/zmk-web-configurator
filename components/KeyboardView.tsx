@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Layer, PhysicalKey } from "@/lib/types";
 import type { EncoderSample, PointerSample } from "@/lib/use-webhid";
-import { categorize, categoryColor, describe } from "@/lib/zmk-bindings";
+import { categorize, categoryColor, describeKey } from "@/lib/zmk-bindings";
 
 const KEY_W = 70;
 const KEY_H = 70;
@@ -107,12 +107,14 @@ export function KeyboardView({
             : false;
           const inExistingCombo = comboHighlightKeys?.has(k.position) ?? false;
           const isSel = !comboSelectMode && selectedPos === k.position;
+          const { primary, secondary } = describeKey(binding, layerNames);
           return (
             <KeyCap
               key={k.position}
               x={k.px}
               y={k.py}
-              label={describe(binding, layerNames)}
+              primary={primary}
+              secondary={secondary}
               category={cat}
               selected={isSel}
               pressed={isPressed}
@@ -134,7 +136,8 @@ export function KeyboardView({
 function KeyCap({
   x,
   y,
-  label,
+  primary,
+  secondary,
   category,
   selected,
   pressed,
@@ -144,7 +147,8 @@ function KeyCap({
 }: {
   x: number;
   y: number;
-  label: string;
+  primary: string;
+  secondary?: string;
   category: ReturnType<typeof categorize>;
   selected: boolean;
   pressed: boolean;
@@ -183,15 +187,36 @@ function KeyCap({
       <foreignObject x={4} y={4} width={KEY_W - 8} height={KEY_H - 8}>
         <div
           className={[
-            "flex h-full w-full items-center justify-center text-center text-[11px] leading-tight whitespace-pre-wrap break-words",
-            pressed
-              ? "font-bold text-white"
-              : selected
-                ? "font-bold"
-                : "font-medium",
+            "flex h-full w-full flex-col items-center justify-center text-center leading-tight",
+            pressed ? "text-white" : "",
           ].join(" ")}
         >
-          {label || "—"}
+          <div
+            className={[
+              "text-sm",
+              pressed || selected ? "font-bold" : "font-semibold",
+            ].join(" ")}
+            style={{
+              wordBreak: "break-word",
+              hyphens: "auto",
+            }}
+          >
+            {primary || "—"}
+          </div>
+          {secondary ? (
+            <div
+              className={[
+                "mt-0.5 text-[9px]",
+                pressed
+                  ? "text-white/80"
+                  : selected
+                    ? "text-ink-secondary"
+                    : "text-ink-secondary/80",
+              ].join(" ")}
+            >
+              {secondary}
+            </div>
+          ) : null}
         </div>
       </foreignObject>
     </g>

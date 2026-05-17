@@ -222,6 +222,180 @@ export function formatKeyCode(code: string): string {
   return code;
 }
 
+/* ------------------------------------------------------------------ */
+/* Two-line ("primary" + "secondary") label for the keyboard view.    */
+/* Designed for at-a-glance recognition: the main glyph is whatever  */
+/* the key types on tap, the muted secondary line carries the hold   */
+/* action or modifier flags.                                          */
+/* ------------------------------------------------------------------ */
+
+export type KeyLabel = {
+  /** Big, bold glyph in the keycap. Empty when the binding is purely
+   * a layer hold (mo/tog) — caller should fall back to secondary. */
+  primary: string;
+  /** Smaller muted line under the primary (hold action, modifier
+   * indicator, etc.). Empty when no extra info applies. */
+  secondary?: string;
+};
+
+/**
+ * Build a 2-line label for the keyboard view. Keep primary short
+ * (1-5 chars ideal) so the cap can render it at text-sm bold; let
+ * `secondary` carry the qualifier ("↪ Shift", "▲ L1", "⌃⇧").
+ */
+export function describeKey(
+  binding: Binding,
+  layerNames: string[] = [],
+): KeyLabel {
+  const { behavior, params } = binding;
+  switch (behavior) {
+    case "kp": {
+      // For wrapped modifier keycodes split the modifier prefix into the
+      // secondary line so the main glyph stays clean. e.g.
+      //   LC(LS(TAB)) => primary "Tab", secondary "⌃⇧"
+      const wrapped = decomposeKeyCode(params[0] ?? "");
+      return wrapped;
+    }
+    case "mo":
+      return { primary: `L${params[0] ?? "?"}`, secondary: "hold" };
+    case "to":
+      return { primary: `L${params[0] ?? "?"}`, secondary: "to" };
+    case "tog":
+      return { primary: `L${params[0] ?? "?"}`, secondary: "toggle" };
+    case "lt": {
+      const tap = formatKeyCode(params[1] ?? "");
+      return {
+        primary: tap || "?",
+        secondary: `▲ ${shortLayer(params[0], layerNames)}`,
+      };
+    }
+    case "mt": {
+      const tap = formatKeyCode(params[1] ?? "");
+      return {
+        primary: tap || "?",
+        secondary: `↪ ${modifierSymbol(params[0])}`,
+      };
+    }
+    case "lt_mkp": {
+      const tap = params[1] ?? "?";
+      return {
+        primary: `M${tap.replace(/^MB/, "")}`,
+        secondary: `▲ ${shortLayer(params[0], layerNames)}`,
+      };
+    }
+    case "mkp":
+      return { primary: mouseLabel(params[0] ?? ""), secondary: "click" };
+    case "bt": {
+      const action = params[0] ?? "";
+      const idx = params[1];
+      return {
+        primary: action.replace(/^BT_/, ""),
+        secondary: idx !== undefined ? `BT ${idx}` : "BT",
+      };
+    }
+    case "inc_dec_kp":
+    case "inc_dec_cp":
+      return {
+        primary: `${formatKeyCode(params[0] ?? "")}/${formatKeyCode(params[1] ?? "")}`,
+        secondary: "↺ / ↻",
+      };
+    case "to_layer_0":
+      return {
+        primary: formatKeyCode(params[0] ?? "") || "K",
+        secondary: "→L0",
+      };
+    case "bootloader":
+      return { primary: "Boot", secondary: "loader" };
+    case "sys_reset":
+    case "reset":
+      return { primary: "Reset", secondary: "" };
+    case "trans":
+      return { primary: "▽" };
+    case "none":
+      return { primary: "—" };
+    default: {
+      // Custom or named hold-tap. Surface tap glyph as primary, hold
+      // hint as secondary, behavior name otherwise.
+      if (params.length >= 2) {
+        return {
+          primary: formatKeyCode(params[1]) || params[1],
+          secondary: `▲ ${shortModOrLayer(params[0])} · &${behavior}`,
+        };
+      }
+      if (params.length === 1) {
+        return {
+          primary: formatKeyCode(params[0]) || params[0],
+          secondary: `&${behavior}`,
+        };
+      }
+      return { primary: `&${behavior}` };
+    }
+  }
+}
+
+/**
+ * Strip leading modifier wrappers off a kp param and return the bare
+ * keycode as primary plus the gathered modifier symbols as secondary.
+ *   "LC(LS(TAB))" → { primary: "Tab", secondary: "⌃⇧" }
+ *   "A"           → { primary: "A" }
+ */
+function decomposeKeyCode(code: string): KeyLabel {
+  const mods: string[] = [];
+  let inner = code;
+  for (let safety = 0; safety < 4; safety++) {
+    const m = inner.match(/^([LR])([CGSA])\((.+)\)$/);
+    if (!m) break;
+    const which = m[1];
+    const letter = m[2];
+    const sym = ({ C: "⌃", S: "⇧", A: "⌥", G: "⌘" } as Record<string, string>)[
+      letter
+    ];
+    mods.push(which === "L" ? sym : `R${sym}`);
+    inner = m[3];
+  }
+  const primary = formatKeyCode(inner);
+  return {
+    primary: primary || code,
+    secondary: mods.length > 0 ? mods.join("") : undefined,
+  };
+}
+
+const MOD_SYMBOL: Record<string, string> = {
+  LSHIFT: "⇧",
+  RSHIFT: "⇧",
+  LCTRL: "⌃",
+  RCTRL: "⌃",
+  LALT: "⌥",
+  RALT: "⌥",
+  LCMD: "⌘",
+  RCMD: "⌘",
+  LGUI: "⌘",
+  RGUI: "⌘",
+};
+
+function modifierSymbol(code: string | undefined): string {
+  if (!code) return "?";
+  return MOD_SYMBOL[code] ?? formatKeyCode(code);
+}
+
+function shortLayer(idx: string | undefined, _names: string[]): string {
+  if (idx == null) return "?";
+  const n = Number(idx);
+  return Number.isFinite(n) ? `L${n}` : idx;
+}
+
+function shortModOrLayer(arg: string | undefined): string {
+  if (!arg) return "?";
+  if (MOD_SYMBOL[arg]) return MOD_SYMBOL[arg];
+  if (/^\d+$/.test(arg)) return `L${arg}`;
+  return formatKeyCode(arg);
+}
+
+function mouseLabel(code: string): string {
+  if (!code) return "MB?";
+  return code.replace(/^MB/, "M");
+}
+
 export function categoryColor(cat: BindingCategory): string {
   switch (cat) {
     case "key":
@@ -231,7 +405,7 @@ export function categoryColor(cat: BindingCategory): string {
     case "layer":
       return "bg-teal-50 border-primary/40 text-primary";
     case "hold-tap":
-      return "bg-amber-50 border-amber-200 text-amber-900";
+      return "bg-amber-100 border-amber-300 text-amber-900";
     case "mouse":
       return "bg-blue-50 border-blue-200 text-blue-900";
     case "bluetooth":

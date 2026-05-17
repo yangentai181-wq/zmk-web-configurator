@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { BehaviorDef, Binding, Layer, PhysicalKey } from "@/lib/types";
-import { categorize, describe } from "@/lib/zmk-bindings";
+import { categorize, describeKey } from "@/lib/zmk-bindings";
 import { BindingEditor } from "./BindingEditor";
 import { ui } from "@/lib/ui";
 
@@ -53,6 +53,7 @@ export function KeyDetail({
   const binding = layer.bindings[selectedPos];
   if (!key || !binding) return null;
   const category = categorize(binding);
+  const { primary, secondary } = describeKey(binding, layerNames);
 
   return (
     <div>
@@ -67,6 +68,15 @@ export function KeyDetail({
           </span>
         )}
       </h2>
+
+      <div className="mt-2 flex items-baseline gap-2">
+        <div className="text-xl font-bold text-ink-primary">
+          {primary || "—"}
+        </div>
+        {secondary ? (
+          <div className="text-xs text-ink-secondary">{secondary}</div>
+        ) : null}
+      </div>
 
       {editing && onEditBinding ? (
         <div className="mt-3 rounded-lg border border-primary/30 bg-canvas p-3">
@@ -104,12 +114,6 @@ export function KeyDetail({
               Category
             </div>
             <div className="mt-1 text-sm">{category}</div>
-            <div className="mt-3 text-[10px] uppercase tracking-widest text-ink-muted">
-              Display
-            </div>
-            <pre className="mt-1 whitespace-pre-wrap text-sm">
-              {describe(binding, layerNames)}
-            </pre>
             <div className="mt-3 text-[10px] uppercase tracking-widest text-ink-muted">
               Raw
             </div>
