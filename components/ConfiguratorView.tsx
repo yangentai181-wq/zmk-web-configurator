@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Binding, ComboDef, KeyboardConfig, Layer } from "@/lib/types";
+import type {
+  BehaviorDef,
+  Binding,
+  ComboDef,
+  KeyboardConfig,
+  Layer,
+} from "@/lib/types";
 import { useWebHidKeyboard } from "@/lib/use-webhid";
 import { useZmkStudio } from "@/lib/use-zmk-studio";
 import { generateKeymap } from "@/lib/keymap-generator";
@@ -18,6 +24,7 @@ import { StatusBar } from "./StatusBar";
 import { HidConnect } from "./HidConnect";
 import { CombosPanel } from "./CombosPanel";
 import { ComboEditor } from "./ComboEditor";
+import { BehaviorsPanel } from "./BehaviorsPanel";
 import { MobileActionBar } from "./MobileActionBar";
 import { GithubSettingsModal } from "./GithubSettings";
 import {
@@ -186,6 +193,24 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     saveFile(text, config.trackball.confFilename, "text/plain;charset=utf-8");
   }
 
+  // --- Behaviors state ---
+  const [behaviors, setBehaviors] = useState<BehaviorDef[]>(
+    config.keymap.behaviors,
+  );
+  const originalBehaviorsByName = useMemo(() => {
+    const m = new Map<string, BehaviorDef>();
+    for (const b of config.keymap.behaviors) m.set(b.name, b);
+    return m;
+  }, [config.keymap.behaviors]);
+  const editedBehaviorNames = useMemo(() => {
+    const s = new Set<string>();
+    for (const b of behaviors) {
+      const orig = originalBehaviorsByName.get(b.name);
+      if (!orig || JSON.stringify(orig) !== JSON.stringify(b)) s.add(b.name);
+    }
+    return s;
+  }, [behaviors, originalBehaviorsByName]);
+
   // --- Combos state ---
   const [combos, setCombos] = useState<ComboDef[]>(config.keymap.combos);
   // Track per-combo edited status by comparing against the original
@@ -321,6 +346,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
       ...config.keymap,
       layers: effectiveLayers,
       combos,
+      behaviors,
     });
   }
 
@@ -695,6 +721,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                   selectedPos != null &&
                   edits[layerIndex]?.[selectedPos] !== undefined
                 }
+                namedBehaviors={behaviors}
                 onEditBinding={applyEdit}
                 onResetBinding={resetEdit}
               />
@@ -711,6 +738,14 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             onAdd={startNewCombo}
             onEdit={startEditCombo}
             onDelete={deleteCombo}
+          />
+        </div>
+
+        <div className="mt-6">
+          <BehaviorsPanel
+            behaviors={behaviors}
+            editedNames={editedBehaviorNames}
+            onChange={setBehaviors}
           />
         </div>
 

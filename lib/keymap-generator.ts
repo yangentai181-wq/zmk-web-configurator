@@ -1,4 +1,4 @@
-import type { Binding, ComboDef, KeymapDoc, Layer } from "./types";
+import type { BehaviorDef, Binding, ComboDef, KeymapDoc, Layer } from "./types";
 
 /**
  * Generates a new .keymap text from the parsed KeymapDoc, by substituting
@@ -17,6 +17,7 @@ export function generateKeymap(doc: KeymapDoc): string {
   for (const layer of doc.layers) {
     result = replaceLayerBindings(result, layer);
   }
+  result = replaceBehaviors(result, doc.behaviors);
   result = replaceCombosBlock(result, doc.combos);
   return result;
 }
@@ -47,6 +48,125 @@ function replaceLayerBindings(source: string, layer: Layer): string {
  * inject a fresh block just before the closing brace of the top-level
  * `/ { ... };` node.
  */
+/**
+ * Re-emit behavior overrides + named behaviors. Two passes:
+ *
+ *   1. For each `global` BehaviorDef (e.g. `&mt`, `&lt`), find the
+ *      existing `&<name> { ... };` block in the source and replace its
+ *      body. If no such block exists yet but we have non-trivial
+ *      params, inject one before the `keymap {}` block.
+ *   2. Replace the entire `behaviors { ... };` block with our current
+ *      `named` BehaviorDef list. Like combos, comments inside this
+ *      block are lost — flagged in the type definitions.
+ */
+function replaceBehaviors(source: string, behaviors: BehaviorDef[]): string {
+  let result = source;
+  const globals = behaviors.filter((b) => b.scope === "global");
+  const named = behaviors.filter((b) => b.scope === "named");
+
+  // 1. Global overrides
+  for (const b of globals) {
+    const body = renderBehaviorBody(b, /*includeCompatible=*/ false);
+    const headerRe = new RegExp(
+      `(&${escape(b.name)}\\s*\\{)([^{}]*?)(\\}\\s*;)`,
+      "m",
+    );
+    if (headerRe.test(result)) {
+      result = result.replace(
+        headerRe,
+        (_m, pre: string, _old: string, post: string) =>
+          `${pre}\n${indent(body, 4)}\n    ${post}`,
+      );
+    } else {
+      // No existing override block — inject one before the keymap node.
+      const km = /\bkeymap\s*\{/.exec(result);
+      if (km) {
+        const insertion = `&${b.name} {\n${indent(body, 4)}\n};\n\n    `;
+        result = result.slice(0, km.index) + insertion + result.slice(km.index);
+      }
+    }
+  }
+
+  // 2. Named behaviors block
+  const renderedNamed = named.map(renderNamedBehavior).join("\n\n");
+  const blockBody = renderedNamed
+    ? `\n${indent(renderedNamed, 8)}\n    `
+    : "\n    ";
+  const newBlock = `behaviors {${blockBody}};`;
+
+  const startMatch = /\bbehaviors\s*\{/.exec(result);
+  if (startMatch) {
+    const start = startMatch.index;
+    const bodyStart = start + startMatch[0].length;
+    let depth = 1;
+    let i = bodyStart;
+    for (; i < result.length; i++) {
+      const ch = result[i];
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) break;
+      }
+    }
+    if (depth === 0) {
+      let end = i + 1;
+      if (result[end] === ";") end++;
+      // Only rewrite when we actually have named behaviors or the block
+      // was already there. Empty named[] keeps an empty block to avoid
+      // surprising the user with a missing scaffold.
+      result = result.slice(0, start) + newBlock + result.slice(end);
+    }
+  } else if (named.length > 0) {
+    // Inject before keymap block.
+    const km = /\bkeymap\s*\{/.exec(result);
+    if (km) {
+      result =
+        result.slice(0, km.index) +
+        `${newBlock}\n\n    ` +
+        result.slice(km.index);
+    }
+  }
+
+  return result;
+}
+
+function renderBehaviorBody(
+  b: BehaviorDef,
+  includeCompatible: boolean,
+): string {
+  const lines: string[] = [];
+  if (includeCompatible && b.compatible) {
+    lines.push(`compatible = "${b.compatible}";`);
+  }
+  if (includeCompatible) {
+    lines.push(`#binding-cells = <${b.bindingCells}>;`);
+  }
+  if (b.flavor) lines.push(`flavor = "${b.flavor}";`);
+  if (b.tappingTermMs !== undefined)
+    lines.push(`tapping-term-ms = <${b.tappingTermMs}>;`);
+  if (b.quickTapMs !== undefined)
+    lines.push(`quick-tap-ms = <${b.quickTapMs}>;`);
+  if (b.requirePriorIdleMs !== undefined)
+    lines.push(`require-prior-idle-ms = <${b.requirePriorIdleMs}>;`);
+  if (b.innerBindings && b.innerBindings.length > 0) {
+    const inner = b.innerBindings.map((t) => `<&${t}>`).join(", ");
+    lines.push(`bindings = ${inner};`);
+  }
+  if (b.rawExtra) {
+    // rawExtra already contains trailing semicolons.
+    for (const line of b.rawExtra.split(/\n+/)) {
+      const trimmed = line.trim();
+      if (trimmed) lines.push(trimmed);
+    }
+  }
+  return lines.join("\n");
+}
+
+function renderNamedBehavior(b: BehaviorDef): string {
+  const body = renderBehaviorBody(b, /*includeCompatible=*/ true);
+  return `${b.name}: ${b.name} {\n${indent(body, 4)}\n};`;
+}
+
 function replaceCombosBlock(source: string, combos: ComboDef[]): string {
   const renderedInner = combos.map(renderCombo).join("\n\n");
   const blockBody = `\n        compatible = "zmk,combos";${

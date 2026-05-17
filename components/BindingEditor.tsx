@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Binding } from "@/lib/types";
+import type { BehaviorDef, Binding } from "@/lib/types";
 import { makeBinding, parseRawBinding } from "@/lib/keymap-generator";
 import { ui } from "@/lib/ui";
 
@@ -15,15 +15,20 @@ import { ui } from "@/lib/ui";
 export function BindingEditor({
   binding,
   layerNames,
+  namedBehaviors,
   onApply,
   onCancel,
 }: {
   binding: Binding;
   layerNames: string[];
+  /** Custom hold-tap behaviors defined in the keymap, surfaced as
+   * extra rows in the Behavior dropdown so the user can pick e.g.
+   * &hm or &bspc_lt without dropping to Custom mode. */
+  namedBehaviors?: BehaviorDef[];
   onApply: (next: Binding) => void;
   onCancel: () => void;
 }) {
-  const initialMode = inferMode(binding);
+  const initialMode = inferMode(binding, namedBehaviors);
   const [mode, setMode] = useState<EditorMode>(initialMode);
   const [keyCode, setKeyCode] = useState<string>(
     initialMode === "kp" ? (binding.params[0] ?? "") : "",
@@ -48,7 +53,7 @@ export function BindingEditor({
 
   // Reset form when the selected key changes underneath us.
   useEffect(() => {
-    setMode(inferMode(binding));
+    setMode(inferMode(binding, namedBehaviors));
     setKeyCode(binding.behavior === "kp" ? (binding.params[0] ?? "") : "");
     setLayerIdx(
       binding.behavior === "mo" ||
@@ -85,6 +90,24 @@ export function BindingEditor({
         return parseRawBinding(customText);
       }
     }
+    // Named hold-tap mode: build a binding referencing the custom behavior
+    // by its label and capture the same two args mt/lt would.
+    if (mode.startsWith("named:")) {
+      const name = mode.slice("named:".length);
+      const def = namedBehaviors?.find((b) => b.name === name);
+      if (!def) return null;
+      // 2 args by default; fall back to one if the behavior wants it.
+      if (def.bindingCells === 2) {
+        if (!mtTap) return null;
+        return makeBinding(name, [mtMod, mtTap]);
+      }
+      if (def.bindingCells === 1) {
+        if (!keyCode) return null;
+        return makeBinding(name, [keyCode]);
+      }
+      return makeBinding(name);
+    }
+    return null;
   }
 
   const next = buildBinding();
@@ -106,6 +129,13 @@ export function BindingEditor({
         <option value="tog">Toggle Layer (tog)</option>
         <option value="trans">Transparent (trans)</option>
         <option value="none">None (none)</option>
+        {(namedBehaviors ?? [])
+          .filter((b) => b.scope === "named")
+          .map((b) => (
+            <option key={b.name} value={`named:${b.name}`}>
+              Custom Hold-Tap: &{b.name}
+            </option>
+          ))}
         <option value="custom">Custom…</option>
       </select>
 
@@ -150,9 +180,9 @@ export function BindingEditor({
         </>
       )}
 
-      {mode === "mt" && (
+      {(mode === "mt" || mode.startsWith("named:")) && (
         <>
-          <Field label="Hold modifier">
+          <Field label={mode === "mt" ? "Hold modifier" : "Hold arg"}>
             <select
               value={mtMod}
               onChange={(e) => setMtMod(e.target.value)}
@@ -218,6 +248,8 @@ export function BindingEditor({
   );
 }
 
+/** Editor modes. `named:<behaviorName>` is dynamic, picked when the
+ * user selects a custom hold-tap from the dropdown. */
 type EditorMode =
   | "kp"
   | "mo"
@@ -226,12 +258,19 @@ type EditorMode =
   | "tog"
   | "trans"
   | "none"
-  | "custom";
+  | "custom"
+  | `named:${string}`;
 
-function inferMode(binding: Binding): EditorMode {
-  const known: EditorMode[] = ["kp", "mo", "lt", "mt", "tog", "trans", "none"];
-  if (known.includes(binding.behavior as EditorMode)) {
+function inferMode(
+  binding: Binding,
+  namedBehaviors?: BehaviorDef[],
+): EditorMode {
+  const known = ["kp", "mo", "lt", "mt", "tog", "trans", "none"] as const;
+  if ((known as readonly string[]).includes(binding.behavior)) {
     return binding.behavior as EditorMode;
+  }
+  if (namedBehaviors?.some((b) => b.name === binding.behavior)) {
+    return `named:${binding.behavior}` as EditorMode;
   }
   return "custom";
 }

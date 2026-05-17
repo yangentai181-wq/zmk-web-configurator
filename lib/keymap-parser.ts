@@ -1,4 +1,11 @@
-import type { Binding, ComboDef, KeymapDoc, Layer } from "./types";
+import type {
+  BehaviorDef,
+  Binding,
+  ComboDef,
+  HoldTapFlavor,
+  KeymapDoc,
+  Layer,
+} from "./types";
 
 /**
  * Minimal ZMK .keymap parser sufficient for Phase 1 read-only view.
@@ -10,7 +17,8 @@ export function parseKeymap(source: string): KeymapDoc {
   const defines = parseDefines(stripped);
   const layers = parseLayers(stripped, defines);
   const combos = parseCombos(stripped, defines);
-  return { defines, layers, combos, originalText: source };
+  const behaviors = parseBehaviors(stripped);
+  return { defines, layers, combos, behaviors, originalText: source };
 }
 
 function stripComments(src: string): string {
@@ -106,6 +114,146 @@ function parseCombos(
     });
   }
   return items;
+}
+
+/* ---------- behaviors ---------- */
+
+const FLAVORS: readonly HoldTapFlavor[] = [
+  "hold-preferred",
+  "balanced",
+  "tap-preferred",
+  "tap-unless-interrupted",
+];
+
+/**
+ * Pick up:
+ *   - global overrides of built-in behaviors: `&mt { ... };`, `&lt { ... };`
+ *   - named behavior definitions: `behaviors { hm: hm { ... }; ... };`
+ *
+ * Only the fields we model (flavor, tapping-term-ms, quick-tap-ms,
+ * require-prior-idle-ms, bindings) are extracted into typed slots;
+ * everything else is kept verbatim in `rawExtra` so the generator
+ * can put it back when re-emitting.
+ */
+function parseBehaviors(src: string): BehaviorDef[] {
+  const items: BehaviorDef[] = [];
+
+  // 1. Global overrides: `&mt { ... };`. Allowed labels are short
+  // identifiers; restrict via regex so we don't accidentally match
+  // `&kp ESC` style usages inside other blocks.
+  const globalRe = /&([A-Za-z_][\w]*)\s*\{\s*([^{}]*?)\s*\}\s*;/g;
+  let gm: RegExpExecArray | null;
+  while ((gm = globalRe.exec(src))) {
+    const name = gm[1];
+    const body = gm[2];
+    // Skip references inside other DTS nodes (e.g. `&trackball { status = ...; };`)
+    // by requiring at least one hold-tap property; otherwise it's almost
+    // certainly not a behavior override.
+    if (
+      !/(flavor|tapping-term-ms|quick-tap-ms|require-prior-idle-ms)/.test(body)
+    ) {
+      continue;
+    }
+    items.push(parseBehaviorBody(name, "global", body));
+  }
+
+  // 2. Named definitions inside the `behaviors { ... };` block.
+  const namedBlock = extractBlock(src, /\bbehaviors\s*\{/);
+  if (namedBlock) {
+    // Match: `label_or_name: identifier { ... };` (the label can include
+    // hyphens in ZMK convention, but we stick to word chars for safety).
+    const namedRe =
+      /([A-Za-z_][\w]*)\s*:\s*([A-Za-z_][\w]*)\s*\{\s*([\s\S]*?)\s*\}\s*;/g;
+    let nm: RegExpExecArray | null;
+    while ((nm = namedRe.exec(namedBlock))) {
+      const label = nm[1];
+      const body = nm[3];
+      // Skip stray `compatible = "...";` rows that match nothing meaningful.
+      if (!/compatible\s*=/.test(body)) continue;
+      items.push(parseBehaviorBody(label, "named", body));
+    }
+  }
+
+  return items;
+}
+
+function parseBehaviorBody(
+  name: string,
+  scope: "global" | "named",
+  body: string,
+): BehaviorDef {
+  const compatible =
+    (extractAssignment(body, "compatible") || "").replace(/^"|"$/g, "") ||
+    (scope === "global" ? "zmk,behavior-hold-tap" : "");
+  const cellsRaw = extractAssignment(body, "#binding-cells");
+  const bindingCells = cellsRaw ? Number(cellsRaw) : 2;
+
+  const flavorRaw =
+    (extractAssignment(body, "flavor") || "").replace(/^"|"$/g, "") ||
+    undefined;
+  const flavor = FLAVORS.includes(flavorRaw as HoldTapFlavor)
+    ? (flavorRaw as HoldTapFlavor)
+    : undefined;
+
+  const tappingTermMs = toNum(extractAssignment(body, "tapping-term-ms"));
+  const quickTapMs = toNum(extractAssignment(body, "quick-tap-ms"));
+  const requirePriorIdleMs = toNum(
+    extractAssignment(body, "require-prior-idle-ms"),
+  );
+
+  // bindings = <&mo>, <&mkp>; — split on `,` then strip leading `&`.
+  const bindingsRaw = extractAssignment(body, "bindings");
+  const innerBindings = bindingsRaw
+    ? bindingsRaw
+        .split(",")
+        .map((s) =>
+          s
+            .trim()
+            .replace(/^[<&]|>$/g, "")
+            .replace(/^&/, "")
+            .trim(),
+        )
+        .filter(Boolean)
+    : undefined;
+
+  // Anything we didn't capture explicitly stays as rawExtra so the
+  // generator can put it back verbatim.
+  const knownKeys = new Set([
+    "compatible",
+    "#binding-cells",
+    "flavor",
+    "tapping-term-ms",
+    "quick-tap-ms",
+    "require-prior-idle-ms",
+    "bindings",
+  ]);
+  const extraLines: string[] = [];
+  for (const line of body.split(/;\s*/).map((s) => s.trim())) {
+    if (!line) continue;
+    const m = /^([\w#-]+)\s*=/.exec(line);
+    if (m && knownKeys.has(m[1])) continue;
+    extraLines.push(line + ";");
+  }
+  const rawExtra = extraLines.join("\n");
+
+  return {
+    name,
+    scope,
+    compatible,
+    bindingCells: Number.isFinite(bindingCells) ? bindingCells : 2,
+    flavor,
+    tappingTermMs,
+    quickTapMs,
+    requirePriorIdleMs,
+    innerBindings,
+    rawExtra: rawExtra || undefined,
+  };
+}
+
+function toNum(v: string | null | undefined): number | undefined {
+  if (!v) return undefined;
+  const n = Number(v.replace(/[<>]/g, "").trim());
+  return Number.isFinite(n) ? n : undefined;
 }
 
 function extractBlock(src: string, headerRe: RegExp): string | null {

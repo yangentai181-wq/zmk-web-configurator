@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Binding, Layer, PhysicalKey } from "@/lib/types";
+import type { BehaviorDef, Binding, Layer, PhysicalKey } from "@/lib/types";
 import { categorize, describe } from "@/lib/zmk-bindings";
 import { BindingEditor } from "./BindingEditor";
 import { ui } from "@/lib/ui";
@@ -12,6 +12,7 @@ export function KeyDetail({
   layerNames,
   selectedPos,
   isEdited,
+  namedBehaviors,
   onEditBinding,
   onResetBinding,
 }: {
@@ -20,6 +21,10 @@ export function KeyDetail({
   layerNames: string[];
   selectedPos: number | null;
   isEdited?: boolean;
+  /** Custom hold-tap behaviors defined in the keymap, forwarded to the
+   * BindingEditor's behavior dropdown so the user can pick &hm,
+   * &bspc_lt, … without dropping to Custom mode. */
+  namedBehaviors?: BehaviorDef[];
   onEditBinding?: (pos: number, next: Binding) => void;
   onResetBinding?: (pos: number) => void;
 }) {
@@ -68,6 +73,7 @@ export function KeyDetail({
           <BindingEditor
             binding={binding}
             layerNames={layerNames}
+            namedBehaviors={namedBehaviors}
             onApply={(next) => {
               onEditBinding(selectedPos, next);
               setEditing(false);
