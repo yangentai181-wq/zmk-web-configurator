@@ -25,6 +25,7 @@ import {
   readGithubSettings,
 } from "@/lib/github-settings";
 import { putFile } from "@/lib/github-push";
+import { useCiWatch } from "@/lib/use-ci-watch";
 import { ui } from "@/lib/ui";
 
 export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
@@ -92,6 +93,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     | { kind: "error"; message: string }
     | null
   >(null);
+  const ci = useCiWatch();
 
   async function pushFile(
     pathField: "keymapPath" | "confPath",
@@ -119,6 +121,9 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
         commitUrl: result.commitUrl,
         actionsUrl: result.actionsUrl,
       });
+      if (result.commitSha) {
+        ci.start(result.commitSha);
+      }
     } else {
       setPushBanner({
         kind: "error",
@@ -473,6 +478,81 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             </span>
           </div>
         )}
+        {ci.state.status !== "idle" && (
+          <div
+            className={[
+              "mb-3 rounded-lg border px-3 py-2 text-xs",
+              ci.state.status === "success"
+                ? "border-primary/30 bg-teal-50 text-primary"
+                : ci.state.status === "failure" ||
+                    ci.state.status === "error" ||
+                    ci.state.status === "not_found"
+                  ? "border-status-warn/30 bg-red-50 text-status-warn"
+                  : "border-accent/30 bg-orange-50 text-accent",
+            ].join(" ")}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="flex items-center gap-2">
+                <span>
+                  {ci.state.status === "searching" && "🤖 CI: starting…"}
+                  {ci.state.status === "queued" && "🤖 CI: queued"}
+                  {ci.state.status === "in_progress" && "🤖 CI: building"}
+                  {ci.state.status === "success" &&
+                    "🤖 CI: build complete — UF2 ready"}
+                  {ci.state.status === "failure" && "🤖 CI: build failed"}
+                  {ci.state.status === "error" &&
+                    `🤖 CI watch error — ${ci.state.error ?? "unknown"}`}
+                  {ci.state.status === "not_found" &&
+                    "🤖 CI: no run found for this commit"}
+                </span>
+                <span className="text-ink-muted">
+                  {formatElapsed(ci.state.elapsedSec)}
+                </span>
+              </span>
+              <span className="flex items-center gap-3">
+                {ci.state.run && (
+                  <a
+                    href={ci.state.run.htmlUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    Run #{ci.state.run.id} ↗
+                  </a>
+                )}
+                {(ci.state.status === "in_progress" ||
+                  ci.state.status === "queued" ||
+                  ci.state.status === "searching") && (
+                  <button
+                    type="button"
+                    onClick={ci.cancel}
+                    className="text-ink-secondary underline hover:text-ink-primary"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </span>
+            </div>
+            {ci.state.status === "success" && ci.state.files.length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {ci.state.files.map((f) => (
+                  <li key={f.name}>
+                    <a
+                      href={f.blobUrl}
+                      download={f.name}
+                      className="inline-flex items-center gap-1 rounded-lg border border-primary bg-primary px-2.5 py-1 text-xs font-bold text-white hover:bg-primary-hover"
+                    >
+                      ⬇ {f.name}
+                      <span className="ml-1 font-normal text-white/70">
+                        ({Math.round(f.sizeBytes / 1024)}KB)
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <LayerTabs
             layers={config.keymap.layers}
@@ -823,6 +903,13 @@ function saveFile(text: string, filename: string, mime: string) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m${s.toString().padStart(2, "0")}s`;
 }
 
 function highestBitIndex(mask: number): number | null {

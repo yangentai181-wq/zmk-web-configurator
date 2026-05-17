@@ -92,13 +92,16 @@ export function GithubSettingsModal({
         </div>
 
         <p className="mt-2 text-xs text-ink-secondary">
-          Push edited .keymap / .conf directly to a GitHub repo. Use a
-          <strong> Fine-grained PAT</strong> scoped to{" "}
+          Push edited .keymap / .conf directly to a GitHub repo and watch the
+          resulting CI build. Use a <strong>Fine-grained PAT</strong> scoped to{" "}
           <code className="rounded bg-canvas px-1">
             Contents: Read and write
           </code>{" "}
-          on this one repo. The token is kept in localStorage on this device
-          only — not transmitted anywhere except api.github.com.
+          (for pushing) and{" "}
+          <code className="rounded bg-canvas px-1">Actions: Read</code> (for
+          watching the build and downloading UF2 artifacts), both on this one
+          repo. The token is kept in localStorage on this device only — not
+          transmitted anywhere except api.github.com.
         </p>
 
         <div className="mt-4 space-y-3">

@@ -14,6 +14,9 @@ import type { GithubSettings } from "./github-settings";
 
 export type PushResult = {
   ok: boolean;
+  /** SHA of the resulting commit. Needed downstream so a CI watcher
+   * can filter workflow_runs by head_sha. */
+  commitSha?: string;
   /** URL of the resulting commit on github.com, if any. */
   commitUrl?: string;
   /** URL of the Actions tab for the target repo so the user can
@@ -99,10 +102,11 @@ export async function putFile(
       return { ok: false, error: err.message, status: res.status };
     }
     const data = (await res.json()) as {
-      commit?: { html_url?: string };
+      commit?: { sha?: string; html_url?: string };
     };
     return {
       ok: true,
+      commitSha: data.commit?.sha,
       commitUrl: data.commit?.html_url,
       actionsUrl: `https://github.com/${settings.owner}/${settings.repo}/actions`,
     };
