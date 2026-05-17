@@ -19,6 +19,12 @@ import { HidConnect } from "./HidConnect";
 import { CombosPanel } from "./CombosPanel";
 import { ComboEditor } from "./ComboEditor";
 import { MobileActionBar } from "./MobileActionBar";
+import { GithubSettingsModal } from "./GithubSettings";
+import {
+  isGithubSettingsComplete,
+  readGithubSettings,
+} from "@/lib/github-settings";
+import { putFile } from "@/lib/github-push";
 import { ui } from "@/lib/ui";
 
 export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
@@ -70,6 +76,56 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
   );
 
   const [studioApplyError, setStudioApplyError] = useState<string | null>(null);
+
+  // --- GitHub push state ---
+  const [githubOpen, setGithubOpen] = useState(false);
+  // Bump this whenever settings change, so derived flags re-evaluate.
+  const [ghTick, setGhTick] = useState(0);
+  const ghReady = useMemo(
+    () => isGithubSettingsComplete(readGithubSettings()),
+    // ghTick lets us refresh after the modal saves.
+    [ghTick], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushBanner, setPushBanner] = useState<
+    | { kind: "ok"; message: string; commitUrl?: string; actionsUrl?: string }
+    | { kind: "error"; message: string }
+    | null
+  >(null);
+
+  async function pushFile(
+    pathField: "keymapPath" | "confPath",
+    contentFn: () => string,
+    label: string,
+  ) {
+    const settings = readGithubSettings();
+    if (!isGithubSettingsComplete(settings)) {
+      setGithubOpen(true);
+      return;
+    }
+    setPushBusy(true);
+    setPushBanner(null);
+    const result = await putFile(
+      settings,
+      settings[pathField],
+      contentFn(),
+      `chore: update ${label} via zmk-web-configurator`,
+    );
+    setPushBusy(false);
+    if (result.ok) {
+      setPushBanner({
+        kind: "ok",
+        message: `Pushed ${label} to ${settings.owner}/${settings.repo}@${settings.branch}.`,
+        commitUrl: result.commitUrl,
+        actionsUrl: result.actionsUrl,
+      });
+    } else {
+      setPushBanner({
+        kind: "error",
+        message: `Push failed: ${result.error ?? "unknown error"}`,
+      });
+    }
+  }
 
   // --- Trackball state ---
   const [trackballEdits, setTrackballEdits] = useState<TrackballEdits>({});
@@ -255,14 +311,69 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     setEdits({});
   }
 
-  function downloadKeymap() {
-    const docWithEdits = {
+  function buildKeymapText(): string {
+    return generateKeymap({
       ...config.keymap,
       layers: effectiveLayers,
       combos,
-    };
-    const text = generateKeymap(docWithEdits);
-    saveFile(text, `${config.name}.keymap`, "text/plain;charset=utf-8");
+    });
+  }
+
+  function downloadKeymap() {
+    saveFile(
+      buildKeymapText(),
+      `${config.name}.keymap`,
+      "text/plain;charset=utf-8",
+    );
+  }
+
+  function pushKeymap() {
+    void pushFile("keymapPath", buildKeymapText, ".keymap");
+  }
+  function pushConf() {
+    void pushFile(
+      "confPath",
+      () => {
+        // Reuse the conf override map building from downloadConf
+        const overrides: Record<string, string | null> = {};
+        if (trackballEdits.cpi !== undefined)
+          overrides.CONFIG_PMW3610_CPI = String(trackballEdits.cpi);
+        if (trackballEdits.cpiDividor !== undefined)
+          overrides.CONFIG_PMW3610_CPI_DIVIDOR = String(
+            trackballEdits.cpiDividor,
+          );
+        if (trackballEdits.scrollTick !== undefined)
+          overrides.CONFIG_PMW3610_SCROLL_TICK = String(
+            trackballEdits.scrollTick,
+          );
+        if (trackballEdits.automouseTimeoutMs !== undefined)
+          overrides.CONFIG_PMW3610_AUTOMOUSE_TIMEOUT_MS = String(
+            trackballEdits.automouseTimeoutMs,
+          );
+        if (trackballEdits.invertX !== undefined)
+          overrides.CONFIG_PMW3610_INVERT_X = trackballEdits.invertX
+            ? "y"
+            : "n";
+        if (trackballEdits.invertY !== undefined)
+          overrides.CONFIG_PMW3610_INVERT_Y = trackballEdits.invertY
+            ? "y"
+            : "n";
+        if (trackballEdits.invertScrollX !== undefined)
+          overrides.CONFIG_PMW3610_INVERT_SCROLL_X =
+            trackballEdits.invertScrollX ? "y" : "n";
+        if (trackballEdits.smartAlgorithm !== undefined)
+          overrides.CONFIG_PMW3610_SMART_ALGORITHM =
+            trackballEdits.smartAlgorithm ? "y" : "n";
+        if (trackballEdits.pollingRate !== undefined) {
+          overrides.CONFIG_PMW3610_POLLING_RATE_125 =
+            trackballEdits.pollingRate === 125 ? "y" : null;
+          overrides.CONFIG_PMW3610_POLLING_RATE_250 =
+            trackballEdits.pollingRate === 250 ? "y" : null;
+        }
+        return generateConf(config.trackball.originalConfText, overrides);
+      },
+      ".conf",
+    );
   }
 
   const activeLayers = useMemo(() => {
@@ -293,6 +404,15 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             <StatusBar config={config} hidConnected={!!hid.device} />
             <HidConnect hid={hid} />
             <StudioConnect studio={studio} />
+            <button
+              type="button"
+              onClick={() => setGithubOpen(true)}
+              className={ui.iconButton}
+              title="GitHub push settings"
+              aria-label="Open GitHub settings"
+            >
+              ⚙️
+            </button>
           </div>
         </div>
         {/* Mobile-only secondary row: keep status visible, hide CTAs (they
@@ -306,6 +426,51 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
         {studioApplyError && (
           <div className="mb-3 rounded-lg border border-status-warn/30 bg-red-50 px-3 py-2 text-xs text-status-warn">
             {studioApplyError}
+          </div>
+        )}
+        {pushBanner && (
+          <div
+            className={[
+              "mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs",
+              pushBanner.kind === "ok"
+                ? "border-primary/30 bg-teal-50 text-primary"
+                : "border-status-warn/30 bg-red-50 text-status-warn",
+            ].join(" ")}
+          >
+            <span>
+              {pushBanner.kind === "ok" ? "✅ " : "❌ "}
+              {pushBanner.message}
+            </span>
+            <span className="flex items-center gap-3">
+              {pushBanner.kind === "ok" && pushBanner.commitUrl && (
+                <a
+                  href={pushBanner.commitUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  commit ↗
+                </a>
+              )}
+              {pushBanner.kind === "ok" && pushBanner.actionsUrl && (
+                <a
+                  href={pushBanner.actionsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  Actions ↗
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setPushBanner(null)}
+                aria-label="Dismiss"
+                className="text-ink-secondary hover:text-ink-primary"
+              >
+                ×
+              </button>
+            </span>
           </div>
         )}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -336,10 +501,23 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             <button
               type="button"
               onClick={downloadKeymap}
-              className={ui.ctaPrimarySmall}
+              className={ui.ctaSecondarySmall}
               title="Download a regenerated .keymap with your edits applied"
             >
-              ⬇ Download .keymap
+              ⬇ .keymap
+            </button>
+            <button
+              type="button"
+              onClick={pushKeymap}
+              disabled={pushBusy}
+              className={ui.ctaPrimarySmall}
+              title={
+                ghReady
+                  ? "Push .keymap to GitHub"
+                  : "Configure GitHub settings first"
+              }
+            >
+              {pushBusy ? "Pushing…" : "⬆ Push .keymap"}
             </button>
             {editedTrackballFields.size > 0 && (
               <>
@@ -354,10 +532,23 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                 <button
                   type="button"
                   onClick={downloadConf}
-                  className={ui.ctaPrimarySmall}
+                  className={ui.ctaSecondarySmall}
                   title={`Download ${config.trackball.confFilename} with sensitivity edits applied`}
                 >
-                  ⬇ Download {config.trackball.confFilename}
+                  ⬇ .conf
+                </button>
+                <button
+                  type="button"
+                  onClick={pushConf}
+                  disabled={pushBusy}
+                  className={ui.ctaPrimarySmall}
+                  title={
+                    ghReady
+                      ? `Push ${config.trackball.confFilename} to GitHub`
+                      : "Configure GitHub settings first"
+                  }
+                >
+                  {pushBusy ? "Pushing…" : "⬆ Push .conf"}
                 </button>
               </>
             )}
@@ -580,21 +771,43 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                     : "ready"}
                 </>
               ),
-              primary: {
-                label: "⬇ .keymap",
-                onClick: downloadKeymap,
-                title: "Download regenerated .keymap",
-              },
-              secondary: hid.device
-                ? undefined
-                : hid.supported
-                  ? {
-                      label: "Connect",
-                      onClick: () => void hid.connect(),
-                      title: "Connect Keyboard via WebHID",
-                    }
-                  : undefined,
+              primary: ghReady
+                ? {
+                    label: pushBusy ? "Pushing…" : "⬆ Push .keymap",
+                    onClick: pushKeymap,
+                    disabled: pushBusy,
+                    title: "Push regenerated .keymap to GitHub",
+                  }
+                : {
+                    label: "⬇ .keymap",
+                    onClick: downloadKeymap,
+                    title:
+                      "Download regenerated .keymap (configure GitHub for direct push)",
+                  },
+              secondary: ghReady
+                ? {
+                    label: "⬇",
+                    onClick: downloadKeymap,
+                    title: "Download instead of pushing",
+                  }
+                : hid.device
+                  ? undefined
+                  : hid.supported
+                    ? {
+                        label: "Connect",
+                        onClick: () => void hid.connect(),
+                        title: "Connect Keyboard via WebHID",
+                      }
+                    : undefined,
             })}
+      />
+
+      <GithubSettingsModal
+        open={githubOpen}
+        onClose={() => {
+          setGithubOpen(false);
+          setGhTick((t) => t + 1);
+        }}
       />
     </div>
   );
