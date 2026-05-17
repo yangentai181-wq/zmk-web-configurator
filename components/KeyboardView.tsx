@@ -5,7 +5,7 @@ import type { Layer, PhysicalKey } from "@/lib/types";
 import type { EncoderSample, PointerSample } from "@/lib/use-webhid";
 import {
   categorize,
-  categoryFill,
+  categorySvgColors,
   categoryText,
   describeKey,
 } from "@/lib/zmk-bindings";
@@ -161,18 +161,21 @@ function KeyCap({
   comboHinted?: boolean;
   onClick: () => void;
 }) {
-  // visual priority for the rect fill/stroke:
-  //   pressed (teal fill, live)
-  //   > comboSelected (orange fill, picking)
-  //   > category fill (base color)
-  const fillClasses = pressed
-    ? "fill-primary stroke-primary"
-    : comboSelected
-      ? "fill-accent stroke-accent"
-      : categoryFill(category);
+  // Resolve fill/stroke as concrete SVG colors so Tailwind's content
+  // scanner can't lose them. Special states win over category color.
+  const base = categorySvgColors(category);
+  const fill = pressed ? "#0D9488" : comboSelected ? "#F97316" : base.fill;
+  const stroke = selected
+    ? "#F97316"
+    : pressed
+      ? "#0D9488"
+      : comboSelected
+        ? "#F97316"
+        : comboHinted
+          ? "rgba(249,115,22,0.4)"
+          : base.stroke;
+  const strokeWidth = selected ? 3 : comboHinted ? 2 : 1;
 
-  // HTML-side text color separately — bg-* / text-* on the rect
-  // would be no-ops on SVG, so we drive label colors from foreignObject.
   const textClass = pressed
     ? "text-white"
     : comboSelected
@@ -189,14 +192,9 @@ function KeyCap({
         width={KEY_W}
         height={KEY_H}
         rx={10}
-        className={[
-          fillClasses,
-          selected
-            ? "stroke-[3px] stroke-accent"
-            : comboHinted
-              ? "stroke-[2px] stroke-accent/40"
-              : "stroke-[1px]",
-        ].join(" ")}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
         style={{ transition: "stroke 80ms, fill 80ms" }}
       />
       <foreignObject x={4} y={4} width={KEY_W - 8} height={KEY_H - 8}>

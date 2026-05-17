@@ -397,35 +397,46 @@ function mouseLabel(code: string): string {
 }
 
 /**
- * SVG-safe fill+stroke classes for the keycap rect. Tailwind's bg-*
- * classes don't work on <rect>; we need fill-* / stroke-*.
+ * Inline fill+stroke hex pairs for the keycap rect. We don't use
+ * Tailwind `fill-*` utilities because the content scanner can miss
+ * classes constructed inside switch returns, leaving caps black.
+ * Setting the SVG attributes directly avoids that pitfall entirely.
  */
-export function categoryFill(cat: BindingCategory): string {
+export function categorySvgColors(cat: BindingCategory): {
+  fill: string;
+  stroke: string;
+} {
   switch (cat) {
     case "key":
-      return "fill-white stroke-border";
+      return { fill: "#FFFFFF", stroke: "#E2E8F0" }; // white / slate-200
     case "modifier":
-      return "fill-slate-100 stroke-slate-300";
+      return { fill: "#F1F5F9", stroke: "#CBD5E1" }; // slate-100 / slate-300
     case "layer":
-      return "fill-teal-50 stroke-primary/40";
+      return { fill: "#F0FDFA", stroke: "#5EEAD4" }; // teal-50 / teal-300
     case "hold-tap":
-      return "fill-amber-100 stroke-amber-300";
+      return { fill: "#FEF3C7", stroke: "#FCD34D" }; // amber-100 / amber-300
     case "mouse":
-      return "fill-blue-50 stroke-blue-200";
+      return { fill: "#EFF6FF", stroke: "#BFDBFE" }; // blue-50 / blue-200
     case "bluetooth":
-      return "fill-indigo-50 stroke-indigo-200";
+      return { fill: "#EEF2FF", stroke: "#C7D2FE" }; // indigo-50 / indigo-200
     case "media":
-      return "fill-fuchsia-50 stroke-fuchsia-200";
+      return { fill: "#FDF4FF", stroke: "#F5D0FE" }; // fuchsia-50 / fuchsia-200
     case "macro":
-      return "fill-orange-50 stroke-accent/30";
+      return { fill: "#FFF7ED", stroke: "#FED7AA" }; // orange-50 / orange-200
     case "system":
-      return "fill-red-50 stroke-red-200";
+      return { fill: "#FEF2F2", stroke: "#FECACA" }; // red-50 / red-200
     case "transparent":
     case "none":
-      return "fill-slate-50 stroke-border";
+      return { fill: "#F8FAFC", stroke: "#E2E8F0" }; // slate-50 / slate-200
     default:
-      return "fill-white stroke-border";
+      return { fill: "#FFFFFF", stroke: "#E2E8F0" };
   }
+}
+
+/** @deprecated use categorySvgColors */
+export function categoryFill(cat: BindingCategory): string {
+  const { fill, stroke } = categorySvgColors(cat);
+  return `${fill} ${stroke}`;
 }
 
 /**
