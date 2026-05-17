@@ -396,31 +396,70 @@ function mouseLabel(code: string): string {
   return code.replace(/^MB/, "M");
 }
 
-export function categoryColor(cat: BindingCategory): string {
+/**
+ * SVG-safe fill+stroke classes for the keycap rect. Tailwind's bg-*
+ * classes don't work on <rect>; we need fill-* / stroke-*.
+ */
+export function categoryFill(cat: BindingCategory): string {
   switch (cat) {
     case "key":
-      return "bg-white border-border text-ink-primary";
+      return "fill-white stroke-border";
     case "modifier":
-      return "bg-slate-100 border-border text-ink-primary";
+      return "fill-slate-100 stroke-slate-300";
     case "layer":
-      return "bg-teal-50 border-primary/40 text-primary";
+      return "fill-teal-50 stroke-primary/40";
     case "hold-tap":
-      return "bg-amber-100 border-amber-300 text-amber-900";
+      return "fill-amber-100 stroke-amber-300";
     case "mouse":
-      return "bg-blue-50 border-blue-200 text-blue-900";
+      return "fill-blue-50 stroke-blue-200";
     case "bluetooth":
-      return "bg-indigo-50 border-indigo-200 text-indigo-900";
+      return "fill-indigo-50 stroke-indigo-200";
     case "media":
-      return "bg-fuchsia-50 border-fuchsia-200 text-fuchsia-900";
+      return "fill-fuchsia-50 stroke-fuchsia-200";
     case "macro":
-      return "bg-orange-50 border-accent/30 text-accent";
+      return "fill-orange-50 stroke-accent/30";
     case "system":
-      return "bg-red-50 border-red-200 text-red-900";
+      return "fill-red-50 stroke-red-200";
     case "transparent":
-      return "bg-slate-50 border-dashed border-border text-ink-muted";
     case "none":
-      return "bg-slate-50 border-dashed border-border text-ink-muted";
+      return "fill-slate-50 stroke-border";
     default:
-      return "bg-white border-border text-ink-secondary";
+      return "fill-white stroke-border";
   }
+}
+
+/**
+ * HTML-side text color (and weight) for the keycap label, by category.
+ */
+export function categoryText(cat: BindingCategory): string {
+  switch (cat) {
+    case "key":
+      return "text-ink-primary";
+    case "modifier":
+      return "text-ink-primary";
+    case "layer":
+      return "text-primary";
+    case "hold-tap":
+      return "text-amber-900";
+    case "mouse":
+      return "text-blue-900";
+    case "bluetooth":
+      return "text-indigo-900";
+    case "media":
+      return "text-fuchsia-900";
+    case "macro":
+      return "text-accent";
+    case "system":
+      return "text-red-900";
+    case "transparent":
+    case "none":
+      return "text-ink-muted";
+    default:
+      return "text-ink-secondary";
+  }
+}
+
+/** @deprecated use categoryFill + categoryText separately */
+export function categoryColor(cat: BindingCategory): string {
+  return `${categoryFill(cat)} ${categoryText(cat)}`;
 }

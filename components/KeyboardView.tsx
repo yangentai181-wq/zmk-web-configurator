@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import type { Layer, PhysicalKey } from "@/lib/types";
 import type { EncoderSample, PointerSample } from "@/lib/use-webhid";
-import { categorize, categoryColor, describeKey } from "@/lib/zmk-bindings";
+import {
+  categorize,
+  categoryFill,
+  categoryText,
+  describeKey,
+} from "@/lib/zmk-bindings";
 
 const KEY_W = 70;
 const KEY_H = 70;
@@ -156,14 +161,24 @@ function KeyCap({
   comboHinted?: boolean;
   onClick: () => void;
 }) {
-  // visual priority:
-  //   pressed (teal fill, live)  >  comboSelected (orange fill, picking)
-  //   >  selected (orange stroke, detail view)  >  base color
-  const classes = pressed
+  // visual priority for the rect fill/stroke:
+  //   pressed (teal fill, live)
+  //   > comboSelected (orange fill, picking)
+  //   > category fill (base color)
+  const fillClasses = pressed
     ? "fill-primary stroke-primary"
     : comboSelected
       ? "fill-accent stroke-accent"
-      : categoryColor(category);
+      : categoryFill(category);
+
+  // HTML-side text color separately — bg-* / text-* on the rect
+  // would be no-ops on SVG, so we drive label colors from foreignObject.
+  const textClass = pressed
+    ? "text-white"
+    : comboSelected
+      ? "text-white"
+      : categoryText(category);
+
   return (
     <g
       transform={`translate(${x}, ${y})`}
@@ -175,7 +190,7 @@ function KeyCap({
         height={KEY_H}
         rx={10}
         className={[
-          classes,
+          fillClasses,
           selected
             ? "stroke-[3px] stroke-accent"
             : comboHinted
@@ -188,7 +203,7 @@ function KeyCap({
         <div
           className={[
             "flex h-full w-full flex-col items-center justify-center text-center leading-tight",
-            pressed ? "text-white" : "",
+            textClass,
           ].join(" ")}
         >
           <div
@@ -206,12 +221,8 @@ function KeyCap({
           {secondary ? (
             <div
               className={[
-                "mt-0.5 text-[9px]",
-                pressed
-                  ? "text-white/80"
-                  : selected
-                    ? "text-ink-secondary"
-                    : "text-ink-secondary/80",
+                "mt-0.5 text-[9px] opacity-70",
+                pressed || comboSelected ? "" : "",
               ].join(" ")}
             >
               {secondary}
