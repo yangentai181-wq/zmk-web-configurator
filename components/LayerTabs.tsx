@@ -1,6 +1,19 @@
 "use client";
 
 import type { Layer } from "@/lib/types";
+import { LAYER_PURPOSE_JA } from "@/lib/labels";
+
+/**
+ * displayName が generic（ASCII のみ＝humanize 由来の英語表示）で、かつ
+ * その index に LAYER_PURPOSE_JA のマッピングが存在する場合のみ日本語に置換。
+ * ユーザーが Japanese を含む displayName を設定していればそのまま尊重する。
+ */
+function localizedLayerLabel(displayName: string, idx: number): string {
+  const isAsciiOnly = /^[\x00-\x7F]*$/.test(displayName);
+  const purpose = LAYER_PURPOSE_JA[idx];
+  if (isAsciiOnly && purpose) return purpose;
+  return displayName;
+}
 
 export function LayerTabs({
   layers,
@@ -35,7 +48,7 @@ export function LayerTabs({
             {liveActive && !selected && (
               <span
                 className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-accent"
-                aria-label="active layer"
+                aria-label="アクティブなレイヤ"
               />
             )}
             <span
@@ -47,7 +60,7 @@ export function LayerTabs({
               L{l.index}
             </span>
             <span className={selected ? "font-bold" : "font-medium"}>
-              {l.displayName}
+              {localizedLayerLabel(l.displayName, l.index)}
             </span>
           </button>
         );

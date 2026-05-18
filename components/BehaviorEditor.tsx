@@ -28,8 +28,8 @@ const PRESETS: {
 }[] = [
   {
     id: "repeat-friendly",
-    label: "Repeat-friendly",
-    hint: "リピート最優先。BACKSPACE などに",
+    label: "リピート優先",
+    hint: "BACKSPACE などキーリピートを使いたいキー向け",
     values: {
       flavor: "tap-preferred",
       tappingTermMs: 200,
@@ -39,8 +39,8 @@ const PRESETS: {
   },
   {
     id: "home-row-mod",
-    label: "Home row mod",
-    hint: "ホームロウmod 用 (短めtap-preferred + 直前タイピングを許容)",
+    label: "ホームロウmod",
+    hint: "Aや;のホームポジションに修飾キーを置く設計向け（短めタップ優先＋直前タイピング許容）",
     values: {
       flavor: "tap-preferred",
       tappingTermMs: 180,
@@ -50,8 +50,8 @@ const PRESETS: {
   },
   {
     id: "slow-careful",
-    label: "Slow & careful",
-    hint: "ゆっくり押したい時用",
+    label: "ゆっくり",
+    hint: "ホールド判定を長め(350ms)に。ゆっくり押す人向け",
     values: {
       flavor: "balanced",
       tappingTermMs: 350,
@@ -61,8 +61,8 @@ const PRESETS: {
   },
   {
     id: "zmk-default",
-    label: "ZMK default",
-    hint: "ZMK 公式デフォルト",
+    label: "ZMK標準",
+    hint: "ZMK 公式デフォルト値",
     values: {
       flavor: "balanced",
       tappingTermMs: 280,
@@ -75,23 +75,23 @@ const PRESETS: {
 const FLAVORS: { id: HoldTapFlavor; label: string; hint: string }[] = [
   {
     id: "hold-preferred",
-    label: "hold-preferred",
-    hint: "tapping-term 経過で即 hold",
+    label: "ホールド優先",
+    hint: "切替時間を超えたら即ホールド扱い",
   },
   {
     id: "balanced",
-    label: "balanced",
-    hint: "interrupt key 解放で hold (default)",
+    label: "バランス型 (標準)",
+    hint: "他キーを離した瞬間にホールド判定",
   },
   {
     id: "tap-preferred",
-    label: "tap-preferred",
-    hint: "interrupt キーで hold、それ以外 tap",
+    label: "タップ優先",
+    hint: "他キーを押された時のみホールド、普段はタップ",
   },
   {
     id: "tap-unless-interrupted",
-    label: "tap-unless-interrupted",
-    hint: "tapping-term 経過で tap、interrupt で hold",
+    label: "中断時のみホールド",
+    hint: "切替時間を超えてもタップ、他キー干渉時のみホールド",
   },
 ];
 
@@ -192,7 +192,7 @@ export function BehaviorEditor({
 
   return (
     <div className="space-y-3">
-      <Field label="Preset">
+      <Field label="プリセット">
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((p) => (
             <button
@@ -210,7 +210,7 @@ export function BehaviorEditor({
 
       {initial.scope === "named" && (
         <Field
-          label="Name"
+          label="名前"
           hint={
             !nameValid ? "英数字+アンダースコア、先頭は英字または _" : undefined
           }
@@ -225,7 +225,7 @@ export function BehaviorEditor({
         </Field>
       )}
 
-      <Field label="Flavor">
+      <Field label="判定方式">
         <div className="space-y-1.5">
           {FLAVORS.map((f) => (
             <label
@@ -240,7 +240,7 @@ export function BehaviorEditor({
                 className="mt-0.5 accent-primary"
               />
               <span>
-                <span className="font-mono">{f.label}</span>{" "}
+                <span className="font-medium">{f.label}</span>{" "}
                 <span className="text-ink-muted">— {f.hint}</span>
               </span>
             </label>
@@ -249,8 +249,8 @@ export function BehaviorEditor({
       </Field>
 
       <Field
-        label="tapping-term-ms (ホールド判定までの時間)"
-        hint={!tappingTermValid ? "0 以上" : undefined}
+        label="切替時間 (ms) — タップ／ホールドを切り替える長押し時間"
+        hint={!tappingTermValid ? "0 以上の数値" : undefined}
       >
         <div className="flex gap-2">
           <input
@@ -270,38 +270,48 @@ export function BehaviorEditor({
             aria-invalid={!tappingTermValid}
           />
         </div>
+        <p className="mt-1 text-[10px] text-ink-secondary">
+          短い→反応が早いが誤発火しやすい /
+          長い→誤発火しにくいが反応が遅れる。50〜500ms。
+        </p>
       </Field>
 
       <Field
-        label="quick-tap-ms (リピート優先窓口、空欄=未設定)"
-        hint={!quickTapValid ? "0 以上または空欄" : undefined}
+        label="再タップ判定 (ms) — 連打時にタップとして扱う窓"
+        hint={!quickTapValid ? "0 以上の数値、または空欄" : undefined}
       >
         <input
           value={quickTapMs}
           onChange={(e) => setQuickTapMs(e.target.value.trim())}
-          placeholder="例: 50"
+          placeholder="例: 50（空欄で無効）"
           inputMode="numeric"
           className={ui.input}
           aria-invalid={!quickTapValid}
         />
+        <p className="mt-1 text-[10px] text-ink-secondary">
+          直前にタップ後この時間内に再度タップすると、長押しせず常にタップ扱い（キーリピート可能に）。
+        </p>
       </Field>
 
       <Field
-        label="require-prior-idle-ms (直前のキー入力後の待ち、空欄=未設定)"
-        hint={!priorIdleValid ? "0 以上または空欄" : undefined}
+        label="直前無入力時間 (ms) — タイピング中の誤発火防止"
+        hint={!priorIdleValid ? "0 以上の数値、または空欄" : undefined}
       >
         <input
           value={requirePriorIdleMs}
           onChange={(e) => setRequirePriorIdleMs(e.target.value.trim())}
-          placeholder="例: 150"
+          placeholder="例: 150（空欄で無効）"
           inputMode="numeric"
           className={ui.input}
           aria-invalid={!priorIdleValid}
         />
+        <p className="mt-1 text-[10px] text-ink-secondary">
+          他キーを離してからこの時間以内ならホールド扱いせずタップ。文字入力中の暴発を抑える。
+        </p>
       </Field>
 
       {initial.scope === "named" && (
-        <Field label="Inner bindings (raw, comma separated)">
+        <Field label="内部バインディング（カンマ区切り）">
           <input
             value={innerBindingsRaw}
             onChange={(e) => setInnerBindingsRaw(e.target.value)}
@@ -318,10 +328,10 @@ export function BehaviorEditor({
           disabled={!formValid}
           className={`${ui.ctaPrimary} flex-1`}
         >
-          {initial.scope === "global" ? "Apply" : "Save"}
+          {initial.scope === "global" ? "反映" : "保存"}
         </button>
         <button type="button" onClick={onCancel} className={ui.ctaSecondary}>
-          Cancel
+          取消
         </button>
       </div>
     </div>

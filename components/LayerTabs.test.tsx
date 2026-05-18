@@ -31,16 +31,16 @@ const LAYERS: Layer[] = [
 describe("<LayerTabs>", () => {
   it("renders one button per layer with the displayName visible", () => {
     render(<LayerTabs layers={LAYERS} active={0} onChange={() => {}} />);
-    expect(screen.getByText("Default")).toBeInTheDocument();
-    expect(screen.getByText("Number")).toBeInTheDocument();
-    expect(screen.getByText("FN")).toBeInTheDocument();
+    expect(screen.getByText("デフォルト (QWERTY)")).toBeInTheDocument();
+    expect(screen.getByText("テンキー")).toBeInTheDocument();
+    expect(screen.getByText("矢印")).toBeInTheDocument();
   });
 
   it("fires onChange with the clicked layer index", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<LayerTabs layers={LAYERS} active={0} onChange={onChange} />);
-    await user.click(screen.getByText("Number"));
+    await user.click(screen.getByText("テンキー"));
     expect(onChange).toHaveBeenCalledWith(1);
   });
 
@@ -54,8 +54,8 @@ describe("<LayerTabs>", () => {
         onChange={() => {}}
       />,
     );
-    // The accent dot is an empty span with aria-label="active layer"
-    expect(screen.getByLabelText("active layer")).toBeInTheDocument();
+    // The accent dot is an empty span with aria-label="アクティブなレイヤ"
+    expect(screen.getByLabelText("アクティブなレイヤ")).toBeInTheDocument();
   });
 
   it("does NOT show the accent dot on the selected layer (its color already changes)", () => {
@@ -68,6 +68,8 @@ describe("<LayerTabs>", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.queryByLabelText("active layer")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("アクティブなレイヤ"),
+    ).not.toBeInTheDocument();
   });
 });

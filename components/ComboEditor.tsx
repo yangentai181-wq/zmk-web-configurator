@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ComboDef } from "@/lib/types";
 import { parseRawBinding } from "@/lib/keymap-generator";
+import { UI } from "@/lib/labels";
 import { ui } from "@/lib/ui";
 
 /**
@@ -110,7 +111,7 @@ export function ComboEditor({
 
   return (
     <div className="space-y-3">
-      <Field label="Name">
+      <Field label="名前">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -125,7 +126,7 @@ export function ComboEditor({
         )}
       </Field>
 
-      <Field label="Key positions">
+      <Field label="キー位置">
         <div className="flex items-center gap-2">
           <div className="flex flex-1 flex-wrap items-center gap-1 rounded-lg border border-border bg-canvas px-2 py-1.5 text-xs">
             {keyPositions.length === 0 ? (
@@ -146,7 +147,7 @@ export function ComboEditor({
             onClick={onPickKeys}
             className={ui.ctaPrimarySmall}
           >
-            Pick keys
+            キーを選択
           </button>
         </div>
         {!positionsValid && (
@@ -156,7 +157,7 @@ export function ComboEditor({
         )}
       </Field>
 
-      <Field label="Bindings (raw)">
+      <Field label="動作 (raw)">
         <input
           value={bindingsRaw}
           onChange={(e) => setBindingsRaw(e.target.value)}
@@ -165,12 +166,13 @@ export function ComboEditor({
         />
         {previewBinding && (
           <p className="mt-1 text-[10px] text-ink-secondary">
-            preview: <code className="font-mono">{previewBinding.raw}</code>
+            {UI.preview}:{" "}
+            <code className="font-mono">{previewBinding.raw}</code>
           </p>
         )}
       </Field>
 
-      <Field label="timeout-ms">
+      <Field label="タイムアウト (ms)">
         <input
           value={timeoutMs}
           onChange={(e) => setTimeoutMs(e.target.value)}
@@ -180,7 +182,7 @@ export function ComboEditor({
         />
       </Field>
 
-      <Field label="require-prior-idle-ms (optional)">
+      <Field label="直前無入力時間 (ms)（任意）">
         <input
           value={requirePriorIdleMs}
           onChange={(e) => setRequirePriorIdleMs(e.target.value)}
@@ -191,7 +193,7 @@ export function ComboEditor({
         />
       </Field>
 
-      <Field label="Active layers">
+      <Field label="有効なレイヤ">
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-xs">
             <input
@@ -200,7 +202,7 @@ export function ComboEditor({
               checked={layerMode === "all"}
               onChange={() => setLayerMode("all")}
             />
-            <span>All layers</span>
+            <span>すべてのレイヤ</span>
           </label>
           <label className="flex items-center gap-2 text-xs">
             <input
@@ -209,7 +211,7 @@ export function ComboEditor({
               checked={layerMode === "specific"}
               onChange={() => setLayerMode("specific")}
             />
-            <span>Specific layers</span>
+            <span>特定のレイヤ</span>
           </label>
           {layerMode === "specific" && (
             <div className="flex flex-wrap gap-1.5">
@@ -252,10 +254,10 @@ export function ComboEditor({
           disabled={!formValid}
           className={`${ui.ctaPrimary} flex-1`}
         >
-          {initial ? "Save" : "Add"}
+          {initial ? UI.save : UI.add}
         </button>
         <button type="button" onClick={onCancel} className={ui.ctaSecondary}>
-          Cancel
+          {UI.cancel}
         </button>
       </div>
     </div>

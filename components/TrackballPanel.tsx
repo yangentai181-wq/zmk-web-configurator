@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { TrackballConfig } from "@/lib/types";
+import { UI } from "@/lib/labels";
 import { ui } from "@/lib/ui";
 import { TrackballEditor, type TrackballEdits } from "./TrackballEditor";
 
@@ -25,10 +26,10 @@ export function TrackballPanel({
     <section className={ui.card}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-bold">
-          🟢 Trackball
+          🟢 トラックボール
           {isEdited && (
             <span className="ml-2 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-accent">
-              edited
+              編集済
             </span>
           )}
         </h2>
@@ -41,7 +42,7 @@ export function TrackballPanel({
                 : "bg-slate-100 text-ink-secondary",
             ].join(" ")}
           >
-            {trackball.driver} · {trackball.enabled ? "enabled" : "disabled"}
+            {trackball.driver} · {trackball.enabled ? "有効" : "無効"}
           </span>
           {onEdit && !editing && (
             <button
@@ -49,7 +50,7 @@ export function TrackballPanel({
               onClick={() => setEditing(true)}
               className={ui.ctaPrimarySmall}
             >
-              Edit
+              {UI.edit}
             </button>
           )}
         </div>
@@ -70,7 +71,7 @@ export function TrackballPanel({
         <>
           <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
             <Stat
-              label="Scroll Layer"
+              label="スクロールレイヤ"
               value={
                 trackball.scrollLayer != null
                   ? `L${trackball.scrollLayer} ${layerNames[trackball.scrollLayer] ?? ""}`
@@ -78,7 +79,7 @@ export function TrackballPanel({
               }
             />
             <Stat
-              label="Auto-mouse Layer"
+              label="オートマウスレイヤ"
               value={
                 trackball.automouseLayer != null
                   ? `L${trackball.automouseLayer} ${layerNames[trackball.automouseLayer] ?? ""}`
@@ -86,12 +87,12 @@ export function TrackballPanel({
               }
             />
             <Stat
-              label="CPI"
+              label="CPI（感度）"
               value={trackball.cpi !== undefined ? String(trackball.cpi) : "—"}
               highlighted={edited?.has("cpi")}
             />
             <Stat
-              label="CPI dividor"
+              label="CPI 微調整"
               value={
                 trackball.cpiDividor !== undefined
                   ? String(trackball.cpiDividor)
@@ -100,7 +101,7 @@ export function TrackballPanel({
               highlighted={edited?.has("cpiDividor")}
             />
             <Stat
-              label="Scroll tick"
+              label="スクロール間隔"
               value={
                 trackball.scrollTick !== undefined
                   ? String(trackball.scrollTick)
@@ -109,7 +110,7 @@ export function TrackballPanel({
               highlighted={edited?.has("scrollTick")}
             />
             <Stat
-              label="Auto-mouse timeout"
+              label="オートマウス解除時間"
               value={
                 trackball.automouseTimeoutMs !== undefined
                   ? `${trackball.automouseTimeoutMs} ms`
@@ -118,7 +119,7 @@ export function TrackballPanel({
               highlighted={edited?.has("automouseTimeoutMs")}
             />
             <Stat
-              label="Polling rate"
+              label="ポーリングレート"
               value={
                 trackball.pollingRate !== undefined
                   ? `${trackball.pollingRate} Hz`
@@ -127,25 +128,25 @@ export function TrackballPanel({
               highlighted={edited?.has("pollingRate")}
             />
             <Stat
-              label="Smart algo"
-              value={trackball.smartAlgorithm ? "on" : "off"}
+              label="スマートアルゴリズム"
+              value={trackball.smartAlgorithm ? "オン" : "オフ"}
               highlighted={edited?.has("smartAlgorithm")}
             />
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <Flag
-              label="Invert X"
+              label="X軸 反転"
               on={!!trackball.invertX}
               highlighted={edited?.has("invertX")}
             />
             <Flag
-              label="Invert Y"
+              label="Y軸 反転"
               on={!!trackball.invertY}
               highlighted={edited?.has("invertY")}
             />
             <Flag
-              label="Invert scroll X"
+              label="スクロールX 反転"
               on={!!trackball.invertScrollX}
               highlighted={edited?.has("invertScrollX")}
             />
@@ -153,7 +154,7 @@ export function TrackballPanel({
 
           <details className="mt-4">
             <summary className="cursor-pointer text-xs text-ink-secondary hover:text-ink-primary">
-              Raw config ({trackball.settings.length} entries)
+              元の設定 ({trackball.settings.length} 件)
             </summary>
             <ul className="mt-2 space-y-1 text-xs">
               {trackball.settings.map((s) => (
@@ -196,7 +197,7 @@ function Stat({
         {value}
         {highlighted && (
           <span className="ml-2 text-[10px] uppercase tracking-widest text-accent">
-            edited
+            編集済
           </span>
         )}
       </div>

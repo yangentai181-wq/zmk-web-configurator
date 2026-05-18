@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { BehaviorDef, Binding, Layer, PhysicalKey } from "@/lib/types";
 import { categorize, describeKey } from "@/lib/zmk-bindings";
+import { UI, behaviorLabel, categoryLabelJa } from "@/lib/labels";
 import { BindingEditor } from "./BindingEditor";
 import { ui } from "@/lib/ui";
 
@@ -33,17 +34,17 @@ export function KeyDetail({
   if (selectedPos == null) {
     return (
       <div>
-        <h2 className="text-sm font-bold text-ink-primary">Key Detail</h2>
+        <h2 className="text-sm font-bold text-ink-primary">{UI.keyDetail}</h2>
         <p className="mt-2 text-xs text-ink-secondary">
           盤面のキーをクリックすると詳細を表示します。
         </p>
         <div className="mt-4 rounded-lg border border-border bg-canvas p-3 text-xs text-ink-secondary">
-          <div className="font-bold text-ink-primary">Layer</div>
+          <div className="font-bold text-ink-primary">{UI.layers}</div>
           <div className="mt-1">
             L{layer.index} {layer.displayName} ({layer.name})
           </div>
-          <div className="mt-3 font-bold text-ink-primary">Bindings</div>
-          <div className="mt-1">{layer.bindings.length} keys assigned</div>
+          <div className="mt-3 font-bold text-ink-primary">割り当て</div>
+          <div className="mt-1">{layer.bindings.length} 個のキー</div>
         </div>
       </div>
     );
@@ -54,17 +55,18 @@ export function KeyDetail({
   if (!key || !binding) return null;
   const category = categorize(binding);
   const { primary, secondary } = describeKey(binding, layerNames);
+  const sideLabel = key.side === "left" ? "左" : "右";
 
   return (
     <div>
       <h2 className="text-sm font-bold text-ink-primary">
-        Key #{selectedPos}{" "}
+        キー #{selectedPos}{" "}
         <span className="text-ink-secondary">
-          ({key.side} · r{key.row} c{key.col})
+          ({sideLabel}・行{key.row}・列{key.col})
         </span>
         {isEdited && (
-          <span className="ml-2 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-accent">
-            edited
+          <span className="ml-2 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+            {UI.edited}
           </span>
         )}
       </h2>
@@ -94,28 +96,31 @@ export function KeyDetail({
       ) : (
         <>
           <div className="mt-3 rounded-lg border border-border bg-canvas p-3">
-            <div className="text-[10px] uppercase tracking-widest text-ink-muted">
-              Behavior
+            <div className="text-[10px] tracking-widest text-ink-muted">
+              {UI.behavior}
             </div>
             <div className="mt-1 font-bold text-ink-primary">
-              &{binding.behavior}
+              {behaviorLabel(binding.behavior)}
+              <span className="ml-2 font-mono text-xs font-normal text-ink-muted">
+                &{binding.behavior}
+              </span>
             </div>
             {binding.params.length > 0 && (
               <>
-                <div className="mt-3 text-[10px] uppercase tracking-widest text-ink-muted">
-                  Params
+                <div className="mt-3 text-[10px] tracking-widest text-ink-muted">
+                  {UI.params}
                 </div>
                 <div className="mt-1 font-mono text-sm">
                   {binding.params.join(" ")}
                 </div>
               </>
             )}
-            <div className="mt-3 text-[10px] uppercase tracking-widest text-ink-muted">
-              Category
+            <div className="mt-3 text-[10px] tracking-widest text-ink-muted">
+              {UI.category}
             </div>
-            <div className="mt-1 text-sm">{category}</div>
-            <div className="mt-3 text-[10px] uppercase tracking-widest text-ink-muted">
-              Raw
+            <div className="mt-1 text-sm">{categoryLabelJa(category)}</div>
+            <div className="mt-3 text-[10px] tracking-widest text-ink-muted">
+              {UI.raw}
             </div>
             <code className="mt-1 block break-all rounded bg-white px-2 py-1 text-xs">
               {binding.raw}
@@ -129,16 +134,16 @@ export function KeyDetail({
                 onClick={() => setEditing(true)}
                 className={`${ui.ctaPrimary} flex-1`}
               >
-                Edit
+                {UI.edit}
               </button>
               {isEdited && onResetBinding && (
                 <button
                   type="button"
                   onClick={() => onResetBinding(selectedPos)}
                   className={ui.ctaSecondary}
-                  title="Revert to original"
+                  title="編集前に戻す"
                 >
-                  Reset
+                  {UI.reset}
                 </button>
               )}
             </div>

@@ -27,12 +27,14 @@ import { ComboEditor } from "./ComboEditor";
 import { BehaviorsPanel } from "./BehaviorsPanel";
 import { MobileActionBar } from "./MobileActionBar";
 import { GithubSettingsModal } from "./GithubSettings";
+import { UsageGuide } from "./UsageGuide";
 import {
   isGithubSettingsComplete,
   readGithubSettings,
 } from "@/lib/github-settings";
 import { putFile } from "@/lib/github-push";
 import { useCiWatch } from "@/lib/use-ci-watch";
+import { UI } from "@/lib/labels";
 import { ui } from "@/lib/ui";
 
 export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
@@ -124,7 +126,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     if (result.ok) {
       setPushBanner({
         kind: "ok",
-        message: `Pushed ${label} to ${settings.owner}/${settings.repo}@${settings.branch}.`,
+        message: `${label} を ${settings.owner}/${settings.repo}@${settings.branch} に保存しました。`,
         commitUrl: result.commitUrl,
         actionsUrl: result.actionsUrl,
       });
@@ -134,7 +136,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
     } else {
       setPushBanner({
         kind: "error",
-        message: `Push failed: ${result.error ?? "unknown error"}`,
+        message: `保存に失敗しました: ${result.error ?? "原因不明"}`,
       });
     }
   }
@@ -307,7 +309,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
       );
       if (translated === null) {
         setStudioApplyError(
-          `Studio: ${next.raw} は自動翻訳できませんでした (Download .keymap で反映してください)`,
+          `Studio: ${next.raw} は自動変換できませんでした（.keymap をダウンロードして反映してください）`,
         );
         return;
       }
@@ -316,7 +318,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
       void studio.setBinding(layerId, pos, translated).then((result) => {
         if (!result.ok) {
           setStudioApplyError(
-            `Studio: 実機への反映に失敗しました — ${result.error ?? "unknown"}`,
+            `Studio: 実機への反映に失敗しました — ${result.error ?? "原因不明"}`,
           );
         }
       });
@@ -420,14 +422,14 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-ink-secondary">
-              ZMK Web Configurator · Live Input Monitor
+            <div className="text-xs tracking-widest text-ink-secondary">
+              ZMK Web Configurator・リアルタイム入力モニタ
             </div>
             <h1 className="text-lg font-bold">
               ⌨️ {config.name}
               <span className="ml-2 text-ink-secondary">
-                ({config.layout.length} keys · {config.keymap.layers.length}{" "}
-                layers)
+                ({config.layout.length}キー・{config.keymap.layers.length}
+                レイヤ)
               </span>
             </h1>
           </div>
@@ -439,8 +441,8 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               type="button"
               onClick={() => setGithubOpen(true)}
               className={ui.iconButton}
-              title="GitHub push settings"
-              aria-label="Open GitHub settings"
+              title="GitHub連携設定"
+              aria-label="GitHub設定を開く"
             >
               ⚙️
             </button>
@@ -480,7 +482,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                   rel="noreferrer"
                   className="underline"
                 >
-                  commit ↗
+                  コミット ↗
                 </a>
               )}
               {pushBanner.kind === "ok" && pushBanner.actionsUrl && (
@@ -490,13 +492,13 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                   rel="noreferrer"
                   className="underline"
                 >
-                  Actions ↗
+                  ビルド ↗
                 </a>
               )}
               <button
                 type="button"
                 onClick={() => setPushBanner(null)}
-                aria-label="Dismiss"
+                aria-label="閉じる"
                 className="text-ink-secondary hover:text-ink-primary"
               >
                 ×
@@ -520,16 +522,16 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="flex items-center gap-2">
                 <span>
-                  {ci.state.status === "searching" && "🤖 CI: starting…"}
-                  {ci.state.status === "queued" && "🤖 CI: queued"}
-                  {ci.state.status === "in_progress" && "🤖 CI: building"}
+                  {ci.state.status === "searching" && "🤖 ビルド起動中…"}
+                  {ci.state.status === "queued" && "🤖 ビルド待機中"}
+                  {ci.state.status === "in_progress" && "🤖 ビルド中"}
                   {ci.state.status === "success" &&
-                    "🤖 CI: build complete — UF2 ready"}
-                  {ci.state.status === "failure" && "🤖 CI: build failed"}
+                    "🤖 ビルド完了 — UF2 取得可能"}
+                  {ci.state.status === "failure" && "🤖 ビルド失敗"}
                   {ci.state.status === "error" &&
-                    `🤖 CI watch error — ${ci.state.error ?? "unknown"}`}
+                    `🤖 ビルド監視エラー — ${ci.state.error ?? "原因不明"}`}
                   {ci.state.status === "not_found" &&
-                    "🤖 CI: no run found for this commit"}
+                    "🤖 このコミット用のビルドが見つかりません"}
                 </span>
                 <span className="text-ink-muted">
                   {formatElapsed(ci.state.elapsedSec)}
@@ -543,7 +545,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                     rel="noreferrer"
                     className="underline"
                   >
-                    Run #{ci.state.run.id} ↗
+                    ビルド #{ci.state.run.id} ↗
                   </a>
                 )}
                 {(ci.state.status === "in_progress" ||
@@ -554,7 +556,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                     onClick={ci.cancel}
                     className="text-ink-secondary underline hover:text-ink-primary"
                   >
-                    Cancel
+                    {UI.cancel}
                   </button>
                 )}
               </span>
@@ -593,14 +595,14 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
             {editCount > 0 && (
               <>
                 <span className={ui.chipAccent}>
-                  <span className="font-bold">{editCount}</span> edited
+                  <span className="font-bold">{editCount}</span>件 編集中
                 </span>
                 <button
                   type="button"
                   onClick={resetAll}
                   className={ui.ctaSecondarySmall}
                 >
-                  Reset all
+                  全て戻す
                 </button>
               </>
             )}
@@ -608,7 +610,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               type="button"
               onClick={downloadKeymap}
               className={ui.ctaSecondarySmall}
-              title="Download a regenerated .keymap with your edits applied"
+              title="編集を反映した .keymap をダウンロード"
             >
               ⬇ .keymap
             </button>
@@ -619,11 +621,11 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               className={ui.ctaPrimarySmall}
               title={
                 ghReady
-                  ? "Push .keymap to GitHub"
-                  : "Configure GitHub settings first"
+                  ? ".keymap を GitHub に保存"
+                  : "先に GitHub 設定を行ってください"
               }
             >
-              {pushBusy ? "Pushing…" : "⬆ Push .keymap"}
+              {pushBusy ? "保存中…" : "⬆ .keymap を保存"}
             </button>
             {editedTrackballFields.size > 0 && (
               <>
@@ -631,15 +633,15 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                   type="button"
                   onClick={resetTrackballEdits}
                   className={ui.ctaSecondarySmall}
-                  title="Discard trackball sensitivity edits"
+                  title="トラックボール設定の編集を破棄"
                 >
-                  Reset trackball
+                  トラックボール戻す
                 </button>
                 <button
                   type="button"
                   onClick={downloadConf}
                   className={ui.ctaSecondarySmall}
-                  title={`Download ${config.trackball.confFilename} with sensitivity edits applied`}
+                  title={`編集を反映した ${config.trackball.confFilename} をダウンロード`}
                 >
                   ⬇ .conf
                 </button>
@@ -650,11 +652,11 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                   className={ui.ctaPrimarySmall}
                   title={
                     ghReady
-                      ? `Push ${config.trackball.confFilename} to GitHub`
-                      : "Configure GitHub settings first"
+                      ? `${config.trackball.confFilename} を GitHub に保存`
+                      : "先に GitHub 設定を行ってください"
                   }
                 >
-                  {pushBusy ? "Pushing…" : "⬆ Push .conf"}
+                  {pushBusy ? "保存中…" : "⬆ .conf を保存"}
                 </button>
               </>
             )}
@@ -691,7 +693,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                   disabled={(comboEditing?.positions.length ?? 0) < 2}
                   className={ui.ctaAccent}
                 >
-                  Done
+                  完了
                 </button>
               </div>
             )}
@@ -764,20 +766,24 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
           />
         </div>
 
+        <div className="mt-6">
+          <UsageGuide />
+        </div>
+
         {hid.device && (
           <details className={`mt-6 ${ui.card}`}>
             <summary className="flex cursor-pointer items-center justify-between text-sm font-bold">
-              <span>🔬 HID Debug</span>
+              <span>🔬 HID デバッグ</span>
               <span className="text-xs font-normal text-ink-secondary">
                 mask 0x{hid.activeLayerMask.toString(16).padStart(8, "0")} ·
-                highest bit {hidActiveLayer ?? "—"}
+                最上位ビット {hidActiveLayer ?? "—"}
               </span>
             </summary>
 
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className={`${ui.innerCard} text-xs`}>
-                <div className="text-[10px] uppercase tracking-widest text-ink-muted">
-                  Last pointer frame (0xF2)
+                <div className="text-[10px] tracking-widest text-ink-muted">
+                  最新のポインタフレーム (0xF2)
                 </div>
                 {hid.pointer ? (
                   <div className="mt-1 font-mono">
@@ -789,7 +795,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                         0,
                         Math.floor((Date.now() - hid.pointer.at) / 100) / 10,
                       )}
-                      s ago
+                      秒前
                     </span>
                   </div>
                 ) : (
@@ -800,8 +806,8 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               </div>
 
               <div className={`${ui.innerCard} text-xs`}>
-                <div className="text-[10px] uppercase tracking-widest text-ink-muted">
-                  Last encoder tick (0xF3)
+                <div className="text-[10px] tracking-widest text-ink-muted">
+                  最新のエンコーダティック (0xF3)
                 </div>
                 {Object.keys(hid.encoders).length === 0 ? (
                   <div className="mt-1 text-ink-secondary">
@@ -817,7 +823,7 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
                             0,
                             Math.floor((Date.now() - s.at) / 100) / 10,
                           )}
-                          s ago
+                          秒前
                         </span>
                       </li>
                     ))}
@@ -826,8 +832,8 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               </div>
             </div>
 
-            <div className="mt-3 text-[10px] uppercase tracking-widest text-ink-muted">
-              Recent layer/pointer/encoder packets (raw, newest first)
+            <div className="mt-3 text-[10px] tracking-widest text-ink-muted">
+              最近のレイヤ/ポインタ/エンコーダパケット（新しい順）
             </div>
             {hid.recentNonKeyFrames.length === 0 ? (
               <p className="mt-2 text-xs text-ink-secondary">
@@ -854,10 +860,10 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
         )}
       </main>
 
-      <footer className="mx-auto max-w-6xl px-6 pb-8 pt-2 text-xs text-ink-secondary md:pb-8 pb-32">
+      <footer className="mx-auto max-w-6xl px-6 pb-32 pt-2 text-xs text-ink-secondary md:pb-8">
         {hid.device
-          ? "Live input monitor active · keys highlight on press · current layer auto-follows"
-          : "Read-only visualizer · click Connect Keyboard to enable live input monitoring"}
+          ? "リアルタイム入力モニタ動作中・キー押下で着色・レイヤ自動追従"
+          : "ビューモード・上の「接続」ボタンでリアルタイム入力監視が有効になります"}
       </footer>
 
       <MobileActionBar
@@ -865,16 +871,16 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
           ? {
               info: (
                 <span className="text-accent">
-                  🎯 picking · {comboEditing?.positions.length ?? 0} selected
+                  🎯 選択中 · {comboEditing?.positions.length ?? 0}個
                 </span>
               ),
               primary: {
-                label: "Done",
+                label: "完了",
                 onClick: () => setPickingKeys(false),
                 disabled: (comboEditing?.positions.length ?? 0) < 2,
               },
               secondary: {
-                label: "Cancel",
+                label: "取消",
                 onClick: cancelCombo,
               },
             }
@@ -882,36 +888,36 @@ export function ConfiguratorView({ config }: { config: KeyboardConfig }) {
               info: (
                 <>
                   {editCount > 0 || editedComboNames.size > 0
-                    ? `${editCount + editedComboNames.size} edits pending`
-                    : "ready"}
+                    ? `${editCount + editedComboNames.size}件の未保存編集`
+                    : "準備完了"}
                 </>
               ),
               primary: ghReady
                 ? {
-                    label: pushBusy ? "Pushing…" : "⬆ Push .keymap",
+                    label: pushBusy ? "保存中…" : "⬆ .keymap を保存",
                     onClick: pushKeymap,
                     disabled: pushBusy,
-                    title: "Push regenerated .keymap to GitHub",
+                    title: ".keymap を GitHub に保存",
                   }
                 : {
                     label: "⬇ .keymap",
                     onClick: downloadKeymap,
                     title:
-                      "Download regenerated .keymap (configure GitHub for direct push)",
+                      ".keymap をダウンロード（GitHub設定で直接保存もできます）",
                   },
               secondary: ghReady
                 ? {
                     label: "⬇",
                     onClick: downloadKeymap,
-                    title: "Download instead of pushing",
+                    title: "保存ではなくダウンロード",
                   }
                 : hid.device
                   ? undefined
                   : hid.supported
                     ? {
-                        label: "Connect",
+                        label: "接続",
                         onClick: () => void hid.connect(),
-                        title: "Connect Keyboard via WebHID",
+                        title: "WebHID でキーボードに接続",
                       }
                     : undefined,
             })}

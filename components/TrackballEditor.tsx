@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { TrackballConfig } from "@/lib/types";
+import { UI } from "@/lib/labels";
 import { ui } from "@/lib/ui";
 
 /**
@@ -105,7 +106,7 @@ export function TrackballEditor({
   return (
     <div className="space-y-3">
       <Field
-        label={`CPI (sensitivity) — 200..3200 step 200`}
+        label={`CPI（感度） — 200〜3200、200刻み`}
         hint={!cpiValid ? "200〜3200 の 200刻みで指定" : undefined}
       >
         <div className="flex gap-2">
@@ -129,7 +130,7 @@ export function TrackballEditor({
       </Field>
 
       <Field
-        label="CPI dividor (fine-tune)"
+        label="CPI 微調整（dividor）"
         hint={!cpiDividorValid ? "1〜100" : undefined}
       >
         <input
@@ -141,7 +142,10 @@ export function TrackballEditor({
         />
       </Field>
 
-      <Field label="Scroll tick" hint={!scrollTickValid ? "1〜255" : undefined}>
+      <Field
+        label="スクロール間隔"
+        hint={!scrollTickValid ? "1〜255" : undefined}
+      >
         <input
           value={scrollTick}
           onChange={(e) => setScrollTick(e.target.value.trim())}
@@ -152,7 +156,7 @@ export function TrackballEditor({
       </Field>
 
       <Field
-        label="Auto-mouse timeout (ms)"
+        label="オートマウス解除時間 (ms)"
         hint={!automouseValid ? "0以上" : undefined}
       >
         <input
@@ -164,7 +168,7 @@ export function TrackballEditor({
         />
       </Field>
 
-      <Field label="Polling rate">
+      <Field label="ポーリングレート">
         <div className="flex gap-2">
           {[125, 250].map((rate) => (
             <button
@@ -184,21 +188,21 @@ export function TrackballEditor({
         </div>
       </Field>
 
-      <Field label="Axes / algorithm">
+      <Field label="軸とアルゴリズム">
         <div className="space-y-1.5">
           <Toggle
-            label="Invert X (move-X axis)"
+            label="X軸を反転（カーソル左右）"
             checked={invertX}
             onChange={setInvertX}
           />
-          <Toggle label="Invert Y" checked={invertY} onChange={setInvertY} />
+          <Toggle label="Y軸を反転" checked={invertY} onChange={setInvertY} />
           <Toggle
-            label="Invert scroll X"
+            label="スクロールX軸を反転"
             checked={invertScrollX}
             onChange={setInvertScrollX}
           />
           <Toggle
-            label="Smart algorithm (surface adaption)"
+            label="スマートアルゴリズム（表面適応）"
             checked={smartAlgorithm}
             onChange={setSmartAlgorithm}
           />
@@ -212,10 +216,10 @@ export function TrackballEditor({
           disabled={!formValid}
           className={`${ui.ctaPrimary} flex-1`}
         >
-          Apply
+          {UI.apply}
         </button>
         <button type="button" onClick={onCancel} className={ui.ctaSecondary}>
-          Cancel
+          {UI.cancel}
         </button>
       </div>
     </div>

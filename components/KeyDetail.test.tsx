@@ -62,9 +62,9 @@ describe("<KeyDetail>", () => {
         onResetBinding={() => {}}
       />,
     );
-    expect(screen.getByText("edited")).toBeInTheDocument();
+    expect(screen.getByText("編集済")).toBeInTheDocument();
     // Reset button only appears when isEdited
-    expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "戻す" })).toBeInTheDocument();
   });
 
   it("opens the BindingEditor when Edit is clicked", async () => {
@@ -78,10 +78,10 @@ describe("<KeyDetail>", () => {
         onEditBinding={() => {}}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.click(screen.getByRole("button", { name: "編集" }));
     // Editor shows Apply/Cancel
-    expect(screen.getByRole("button", { name: "Apply" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "反映" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取消" })).toBeInTheDocument();
   });
 
   it("propagates Apply back through onEditBinding with the chosen position", async () => {
@@ -96,12 +96,12 @@ describe("<KeyDetail>", () => {
         onEditBinding={onEditBinding}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.click(screen.getByRole("button", { name: "編集" }));
     // Change keycode to K
     const input = screen.getByPlaceholderText(/A \/ N1 \/ LSHIFT/);
     await user.clear(input);
     await user.type(input, "K");
-    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await user.click(screen.getByRole("button", { name: "反映" }));
     expect(onEditBinding).toHaveBeenCalledWith(
       0,
       expect.objectContaining({ behavior: "kp", params: ["K"] }),
