@@ -15,7 +15,7 @@ export function EncoderPanel({
   return (
     <section className="rounded-xl border border-border bg-card p-5 key-shadow">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold">🟠 Rotary Encoder</h2>
+        <h2 className="text-sm font-bold">🟠 ロータリーエンコーダ</h2>
         <span
           className={[
             "rounded-full px-2 py-0.5 text-xs",
@@ -24,22 +24,20 @@ export function EncoderPanel({
               : "bg-slate-100 text-ink-secondary",
           ].join(" ")}
         >
-          {encoder.driver} · {encoder.enabled ? "enabled" : "disabled"}
+          {encoder.driver} · {encoder.enabled ? "有効" : "無効"}
         </span>
       </div>
 
       <div className="mt-3 rounded-lg border border-border bg-canvas p-3 text-sm">
         <div className="text-[10px] uppercase tracking-widest text-ink-muted">
-          Current Layer sensor-bindings
+          現在のレイヤのセンサー動作
         </div>
         {sensorBindings ? (
           <pre className="mt-1 whitespace-pre-wrap font-medium">
             {describe(sensorBindings, layerNames)}
           </pre>
         ) : (
-          <div className="mt-1 text-ink-secondary">
-            ▽ (transparent / inherits)
-          </div>
+          <div className="mt-1 text-ink-secondary">▽ (透過 / 継承)</div>
         )}
       </div>
 
@@ -54,7 +52,7 @@ export function EncoderPanel({
             </div>
             <div className="mt-1 text-sm font-medium">{s.name}</div>
             <div className="mt-1 text-xs text-ink-secondary">
-              {s.compatible ?? "—"} · {s.enabled ? "enabled" : "disabled"}
+              {s.compatible ?? "—"} · {s.enabled ? "有効" : "無効"}
             </div>
           </div>
         ))}
@@ -62,7 +60,7 @@ export function EncoderPanel({
 
       <details className="mt-4">
         <summary className="cursor-pointer text-xs text-ink-secondary hover:text-ink-primary">
-          Raw config ({encoder.settings.length} entries)
+          元の設定 ({encoder.settings.length} 件)
         </summary>
         <ul className="mt-2 space-y-1 text-xs">
           {encoder.settings.map((s) => (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ui } from "@/lib/ui";
+import { UI } from "@/lib/labels";
 import {
   DEFAULT_GITHUB_SETTINGS,
   readGithubSettings,
@@ -53,8 +54,8 @@ export function GithubSettingsModal({
     setTesting(false);
     setTestResult(
       r.ok
-        ? { ok: true, message: `Connected — ${draft.owner}/${draft.repo}` }
-        : { ok: false, message: r.error ?? "Unknown error" },
+        ? { ok: true, message: `接続成功 — ${draft.owner}/${draft.repo}` }
+        : { ok: false, message: r.error ?? "不明なエラー" },
     );
   }
 
@@ -73,35 +74,34 @@ export function GithubSettingsModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="GitHub settings"
+      aria-label="GitHub設定"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold">⚙️ GitHub Push Settings</h2>
+          <h2 className="text-sm font-bold">⚙️ GitHubプッシュ設定</h2>
           <button
             type="button"
             onClick={onClose}
             className={ui.iconButton}
-            aria-label="Close settings"
+            aria-label="設定を閉じる"
           >
             ×
           </button>
         </div>
 
         <p className="mt-2 text-xs text-ink-secondary">
-          Push edited .keymap / .conf directly to a GitHub repo and watch the
-          resulting CI build. Use a <strong>Fine-grained PAT</strong> scoped to{" "}
+          編集した .keymap / .conf
+          をGitHubリポジトリへ直接プッシュし、ビルド結果のCIを監視します。
+          <strong>Fine-grained PAT</strong>を使用し、対象リポジトリに対して{" "}
           <code className="rounded bg-canvas px-1">
             Contents: Read and write
           </code>{" "}
-          (for pushing) and{" "}
-          <code className="rounded bg-canvas px-1">Actions: Read</code> (for
-          watching the build and downloading UF2 artifacts), both on this one
-          repo. The token is kept in localStorage on this device only — not
-          transmitted anywhere except api.github.com.
+          （プッシュ用）と{" "}
+          <code className="rounded bg-canvas px-1">Actions: Read</code>{" "}
+          （ビルド監視・UF2アーティファクトのダウンロード用）の権限を付与してください。トークンはこの端末のlocalStorageにのみ保存され、api.github.com以外へは送信されません。
         </p>
 
         <div className="mt-4 space-y-3">
@@ -117,14 +117,14 @@ export function GithubSettingsModal({
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Owner">
+            <Field label="所有者">
               <input
                 value={draft.owner}
                 onChange={(e) => update("owner", e.target.value.trim())}
                 className={ui.input}
               />
             </Field>
-            <Field label="Repo">
+            <Field label="リポジトリ">
               <input
                 value={draft.repo}
                 onChange={(e) => update("repo", e.target.value.trim())}
@@ -133,7 +133,7 @@ export function GithubSettingsModal({
             </Field>
           </div>
 
-          <Field label="Branch">
+          <Field label="ブランチ">
             <input
               value={draft.branch}
               onChange={(e) => update("branch", e.target.value.trim())}
@@ -141,7 +141,7 @@ export function GithubSettingsModal({
             />
           </Field>
 
-          <Field label=".keymap path">
+          <Field label=".keymap パス">
             <input
               value={draft.keymapPath}
               onChange={(e) => update("keymapPath", e.target.value.trim())}
@@ -149,7 +149,7 @@ export function GithubSettingsModal({
             />
           </Field>
 
-          <Field label=".conf path (R-side)">
+          <Field label=".conf パス（右半身）">
             <input
               value={draft.confPath}
               onChange={(e) => update("confPath", e.target.value.trim())}
@@ -177,9 +177,9 @@ export function GithubSettingsModal({
             type="button"
             onClick={onClear}
             className={ui.ctaSecondarySmall}
-            title="Forget all settings (clears token from localStorage)"
+            title="すべての設定を消去（localStorageからトークンも削除）"
           >
-            Clear
+            消去
           </button>
           <div className="flex gap-2">
             <button
@@ -188,10 +188,10 @@ export function GithubSettingsModal({
               disabled={testing || !draft.token || !draft.owner || !draft.repo}
               className={ui.ctaSecondary}
             >
-              {testing ? "Testing…" : "Test"}
+              {testing ? "テスト中…" : "接続テスト"}
             </button>
             <button type="button" onClick={onSave} className={ui.ctaPrimary}>
-              Save
+              {UI.save}
             </button>
           </div>
         </div>

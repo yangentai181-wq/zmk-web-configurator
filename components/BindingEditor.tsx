@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { BehaviorDef, Binding } from "@/lib/types";
 import { makeBinding, parseRawBinding } from "@/lib/keymap-generator";
+import { UI } from "@/lib/labels";
 import { ui } from "@/lib/ui";
 
 /**
@@ -112,35 +113,37 @@ export function BindingEditor({
 
   const next = buildBinding();
   const isValid = next !== null;
-  const preview = next?.raw ?? "(invalid)";
+  const preview = next?.raw ?? "(無効)";
 
   return (
     <div className="space-y-3">
-      <label className={ui.fieldLabel}>Behavior</label>
+      <label className={ui.fieldLabel}>{UI.behavior}</label>
       <select
         value={mode}
         onChange={(e) => setMode(e.target.value as EditorMode)}
         className={ui.input}
       >
-        <option value="kp">Key (kp)</option>
-        <option value="mo">Layer Hold (mo)</option>
-        <option value="lt">Layer-Tap (lt)</option>
-        <option value="mt">Mod-Tap (mt)</option>
-        <option value="tog">Toggle Layer (tog)</option>
-        <option value="trans">Transparent (trans)</option>
-        <option value="none">None (none)</option>
+        <option value="kp">通常キー</option>
+        <option value="mo">レイヤホールド</option>
+        <option value="lt">レイヤタップ（押すと文字／長押しでレイヤ）</option>
+        <option value="mt">
+          修飾タップ（押すと文字／長押しで Shift など）
+        </option>
+        <option value="tog">レイヤトグル</option>
+        <option value="trans">透過（下のレイヤを利用）</option>
+        <option value="none">無効（何も入力しない）</option>
         {(namedBehaviors ?? [])
           .filter((b) => b.scope === "named")
           .map((b) => (
             <option key={b.name} value={`named:${b.name}`}>
-              Custom Hold-Tap: &{b.name}
+              カスタムホールドタップ: &{b.name}
             </option>
           ))}
-        <option value="custom">Custom…</option>
+        <option value="custom">カスタム…</option>
       </select>
 
       {mode === "kp" && (
-        <Field label="Key code">
+        <Field label={UI.keyCode}>
           <input
             value={keyCode}
             onChange={(e) => setKeyCode(e.target.value.trim())}
@@ -151,7 +154,7 @@ export function BindingEditor({
       )}
 
       {(mode === "mo" || mode === "tog") && (
-        <Field label="Target layer">
+        <Field label={UI.targetLayer}>
           <LayerSelect
             value={layerIdx}
             onChange={setLayerIdx}
@@ -162,14 +165,14 @@ export function BindingEditor({
 
       {mode === "lt" && (
         <>
-          <Field label="Hold layer">
+          <Field label={UI.holdLayer}>
             <LayerSelect
               value={layerIdx}
               onChange={setLayerIdx}
               layerNames={layerNames}
             />
           </Field>
-          <Field label="Tap key">
+          <Field label={UI.tapKey}>
             <input
               value={ltTap}
               onChange={(e) => setLtTap(e.target.value.trim())}
@@ -182,7 +185,7 @@ export function BindingEditor({
 
       {(mode === "mt" || mode.startsWith("named:")) && (
         <>
-          <Field label={mode === "mt" ? "Hold modifier" : "Hold arg"}>
+          <Field label={mode === "mt" ? UI.holdModifier : UI.holdArg}>
             <select
               value={mtMod}
               onChange={(e) => setMtMod(e.target.value)}
@@ -204,7 +207,7 @@ export function BindingEditor({
               ))}
             </select>
           </Field>
-          <Field label="Tap key">
+          <Field label={UI.tapKey}>
             <input
               value={mtTap}
               onChange={(e) => setMtTap(e.target.value.trim())}
@@ -216,7 +219,7 @@ export function BindingEditor({
       )}
 
       {mode === "custom" && (
-        <Field label="Raw binding (start with &)">
+        <Field label="カスタム記述（& で始める）">
           <input
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
@@ -227,7 +230,7 @@ export function BindingEditor({
       )}
 
       <div className={`${ui.innerCard} text-xs`}>
-        <div className={ui.microLabel}>Preview</div>
+        <div className={ui.microLabel}>{UI.preview}</div>
         <code className="mt-1 block break-all font-mono">{preview}</code>
       </div>
 
@@ -238,10 +241,10 @@ export function BindingEditor({
           disabled={!isValid}
           className={`${ui.ctaPrimary} flex-1`}
         >
-          Apply
+          {UI.apply}
         </button>
         <button type="button" onClick={onCancel} className={ui.ctaSecondary}>
-          Cancel
+          {UI.cancel}
         </button>
       </div>
     </div>
@@ -309,7 +312,7 @@ function LayerSelect({
     >
       {layerNames.map((name, idx) => (
         <option key={idx} value={String(idx)}>
-          L{idx} {name}
+          L{idx}・{name}
         </option>
       ))}
     </select>

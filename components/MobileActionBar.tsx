@@ -38,7 +38,7 @@ export function MobileActionBar({
     <div
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden"
       role="toolbar"
-      aria-label="primary actions"
+      aria-label="主要アクション"
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 pt-3 pb-safe">
         {info && (

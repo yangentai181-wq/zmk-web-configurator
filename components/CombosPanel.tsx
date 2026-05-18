@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComboDef, PhysicalKey } from "@/lib/types";
+import { UI } from "@/lib/labels";
 import { ui } from "@/lib/ui";
 
 /**
@@ -33,17 +34,17 @@ export function CombosPanel({
     <section className={ui.card}>
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold">
-          🔗 Combos{" "}
+          🔗 コンボ{" "}
           <span className="text-ink-secondary">({combos.length})</span>
         </h2>
         <button type="button" onClick={onAdd} className={ui.ctaPrimarySmall}>
-          + Add Combo
+          + コンボを追加
         </button>
       </div>
 
       {combos.length === 0 ? (
         <p className="mt-3 text-xs text-ink-secondary">
-          まだコンボが定義されていません。 + Add Combo
+          まだコンボが定義されていません。「+ コンボを追加」
           で盤面からキーを選択して追加できます。
         </p>
       ) : (
@@ -85,7 +86,7 @@ function ComboRow({
       ? combo.layers
           .map((i) => `L${i}${layerNames[i] ? ` ${layerNames[i]}` : ""}`)
           .join(", ")
-      : "all";
+      : "すべて";
 
   return (
     <li className={ui.innerCard}>
@@ -95,31 +96,31 @@ function ComboRow({
             <span className="text-sm font-bold">{combo.name}</span>
             {edited && (
               <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-accent">
-                edited
+                編集済
               </span>
             )}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1 text-xs">
-            <span className="text-ink-muted">keys:</span>
+            <span className="text-ink-muted">キー:</span>
             {combo.keyPositions.map((p) => (
               <KeyChip key={p} pos={p} layout={layout} />
             ))}
             <span className="ml-1 text-ink-muted">→</span>
             <code className="rounded bg-white px-1.5 py-0.5 font-mono">
-              {combo.bindings || "(empty)"}
+              {combo.bindings || "(なし)"}
             </code>
           </div>
           <div className="mt-1 text-[11px] text-ink-secondary">
-            layers: <span className="text-ink-primary">{layerLabel}</span>
+            レイヤ: <span className="text-ink-primary">{layerLabel}</span>
             {combo.timeoutMs !== undefined && (
               <>
-                {" · "}timeout:{" "}
+                {" · "}タイムアウト:{" "}
                 <span className="text-ink-primary">{combo.timeoutMs}ms</span>
               </>
             )}
             {combo.requirePriorIdleMs !== undefined && (
               <>
-                {" · "}prior-idle:{" "}
+                {" · "}直前無入力:{" "}
                 <span className="text-ink-primary">
                   {combo.requirePriorIdleMs}ms
                 </span>
@@ -135,13 +136,13 @@ function ComboRow({
         </div>
         <div className="flex shrink-0 gap-1">
           <button type="button" onClick={onEdit} className={ui.ctaPrimarySmall}>
-            Edit
+            {UI.edit}
           </button>
           <button
             type="button"
             onClick={onDelete}
             className={ui.iconButton}
-            aria-label={`Delete combo ${combo.name}`}
+            aria-label={`コンボ ${combo.name} を削除`}
           >
             ×
           </button>
@@ -153,7 +154,7 @@ function ComboRow({
 
 function KeyChip({ pos, layout }: { pos: number; layout: PhysicalKey[] }) {
   const key = layout.find((k) => k.position === pos);
-  const tooltip = key ? `${key.side} r${key.row} c${key.col}` : `pos ${pos}`;
+  const tooltip = key ? `${key.side} ${key.row}行 ${key.col}列` : `位置 ${pos}`;
   return (
     <span
       className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[10px]"

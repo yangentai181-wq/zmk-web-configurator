@@ -1,5 +1,6 @@
 import type { KeyboardConfig } from "@/lib/types";
 import { ui } from "@/lib/ui";
+import { UI } from "@/lib/labels";
 
 export function StatusBar({
   config,
@@ -11,18 +12,18 @@ export function StatusBar({
   const items = [
     {
       label: "HID",
-      value: hidConnected ? "live" : "off",
+      value: hidConnected ? "ライブ" : "オフ",
       ok: !!hidConnected,
     },
-    { label: "Layers", value: `${config.keymap.layers.length}` },
+    { label: UI.layers, value: `${config.keymap.layers.length}` },
     {
-      label: "TB",
-      value: config.trackball.enabled ? "on" : "off",
+      label: "トラックボール",
+      value: config.trackball.enabled ? "オン" : "オフ",
       ok: config.trackball.enabled,
     },
     {
-      label: "ENC",
-      value: config.encoder.enabled ? "on" : "off",
+      label: "エンコーダ",
+      value: config.encoder.enabled ? "オン" : "オフ",
       ok: config.encoder.enabled,
     },
   ];

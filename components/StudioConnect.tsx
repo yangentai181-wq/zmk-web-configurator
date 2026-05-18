@@ -2,6 +2,7 @@
 
 import type { StudioActions, StudioState } from "@/lib/use-zmk-studio";
 import { ui } from "@/lib/ui";
+import { UI } from "@/lib/labels";
 
 export function StudioConnect({
   studio,
@@ -25,9 +26,9 @@ export function StudioConnect({
           onClick={() => void studio.connect()}
           disabled={studio.busy}
           className={ui.ctaAccent}
-          title="Connect to ZMK Studio over USB (live editing)"
+          title="USB経由でZMK Studioに接続（ライブ編集）"
         >
-          {studio.busy ? "Connecting…" : "🔌 Studio"}
+          {studio.busy ? "接続中…" : `🔌 ${UI.studio}`}
         </button>
       </div>
     );
@@ -39,7 +40,7 @@ export function StudioConnect({
         <span className="font-bold">●</span>
         <span className="font-bold">{studio.deviceInfo?.name ?? "Studio"}</span>
         {studio.unsavedChanges && (
-          <span className="ml-1 text-ink-muted">unsaved</span>
+          <span className="ml-1 text-ink-muted">{UI.unsavedChanges}</span>
         )}
       </div>
       {studio.unsavedChanges && (
@@ -49,18 +50,18 @@ export function StudioConnect({
             onClick={() => void studio.save()}
             disabled={studio.busy}
             className={ui.ctaPrimarySmall}
-            title="Persist pending changes to flash"
+            title="未保存の変更をフラッシュに書き込む"
           >
-            💾 Save
+            💾 {UI.save}
           </button>
           <button
             type="button"
             onClick={() => void studio.discard()}
             disabled={studio.busy}
             className={ui.ctaSecondarySmall}
-            title="Drop pending edits"
+            title="未保存の編集を破棄する"
           >
-            Discard
+            破棄
           </button>
         </>
       )}
@@ -68,8 +69,8 @@ export function StudioConnect({
         type="button"
         onClick={() => void studio.disconnect()}
         className={ui.iconButton}
-        title="Disconnect"
-        aria-label="Disconnect Studio"
+        title={UI.disconnect}
+        aria-label="Studioを切断"
       >
         ×
       </button>

@@ -2,6 +2,7 @@
 
 import type { HidActions, HidState } from "@/lib/use-webhid";
 import { ui } from "@/lib/ui";
+import { UI } from "@/lib/labels";
 
 export function HidConnect({ hid }: { hid: HidState & HidActions }) {
   const ago = hid.lastEventAt
@@ -23,7 +24,7 @@ export function HidConnect({ hid }: { hid: HidState & HidActions }) {
           onClick={() => void hid.connect()}
           className={ui.ctaPrimarySmall}
         >
-          Connect Keyboard
+          キーボードに接続
         </button>
       </div>
     );
@@ -36,7 +37,7 @@ export function HidConnect({ hid }: { hid: HidState & HidActions }) {
         <span className="font-bold">{hid.device.productName || "ZMK"}</span>
         {ago !== null && (
           <span className="ml-1 text-ink-muted">
-            {ago < 2 ? "live" : `${ago}s ago`}
+            {ago < 2 ? "ライブ" : `${ago}秒前`}
           </span>
         )}
       </div>
@@ -44,8 +45,8 @@ export function HidConnect({ hid }: { hid: HidState & HidActions }) {
         type="button"
         onClick={() => void hid.disconnect()}
         className={ui.iconButton}
-        title="Disconnect"
-        aria-label="Disconnect HID"
+        title={UI.disconnect}
+        aria-label="HIDを切断"
       >
         ×
       </button>

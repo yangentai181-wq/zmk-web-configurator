@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { BehaviorDef } from "@/lib/types";
+import { UI } from "@/lib/labels";
 import { ui } from "@/lib/ui";
 import { BehaviorEditor, newNamedBehavior } from "./BehaviorEditor";
 
@@ -52,17 +53,21 @@ export function BehaviorsPanel({
     <section className={ui.card}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-bold">
-          ⏱️ Hold-tap behaviors{" "}
+          ⏱️ {UI.behaviors}{" "}
           <span className="text-ink-secondary">({behaviors.length})</span>
         </h2>
         <button type="button" onClick={startAdd} className={ui.ctaPrimarySmall}>
-          + Add Behavior
+          + 動作を追加
         </button>
       </div>
+      <p className="mt-1 text-[11px] text-ink-secondary">
+        タップとホールドの切替時間や判定方式を編集します。&lt; や &mt;
+        は標準動作、自前で定義したものはカスタム。
+      </p>
 
       {behaviors.length === 0 ? (
         <p className="mt-3 text-xs text-ink-secondary">
-          hold-tap 系の behavior が見つかりませんでした。
+          ホールドタップ系の動作が見つかりませんでした。
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
@@ -120,11 +125,11 @@ function Row({
                 : "inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-teal-50 px-2 py-0.5 text-[10px] text-primary"
             }
           >
-            {behavior.scope === "global" ? "built-in" : "custom"}
+            {behavior.scope === "global" ? "標準" : "カスタム"}
           </span>
           {edited && (
-            <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-accent">
-              edited
+            <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+              {UI.edited}
             </span>
           )}
           {behavior.flavor && (
@@ -135,14 +140,14 @@ function Row({
         </div>
         {isHoldTap && (
           <div className="mt-1 text-[11px] text-ink-secondary">
-            tapping-term:{" "}
+            切替時間:{" "}
             <span className="text-ink-primary">
               {behavior.tappingTermMs ?? "—"}
               {behavior.tappingTermMs !== undefined ? "ms" : ""}
             </span>
             {behavior.quickTapMs !== undefined && (
               <>
-                {" · "}quick-tap:{" "}
+                {" · "}再タップ判定:{" "}
                 <span className="text-ink-primary">
                   {behavior.quickTapMs}ms
                 </span>
@@ -150,7 +155,7 @@ function Row({
             )}
             {behavior.requirePriorIdleMs !== undefined && (
               <>
-                {" · "}prior-idle:{" "}
+                {" · "}直前無入力:{" "}
                 <span className="text-ink-primary">
                   {behavior.requirePriorIdleMs}ms
                 </span>
@@ -158,7 +163,7 @@ function Row({
             )}
             {behavior.innerBindings && behavior.innerBindings.length > 0 && (
               <>
-                {" · "}inner:{" "}
+                {" · "}内部:{" "}
                 <code className="text-ink-primary">
                   {behavior.innerBindings.map((b) => `&${b}`).join(", ")}
                 </code>
@@ -169,14 +174,14 @@ function Row({
       </div>
       <div className="flex shrink-0 gap-1">
         <button type="button" onClick={onEdit} className={ui.ctaPrimarySmall}>
-          Edit
+          {UI.edit}
         </button>
         {onDelete && (
           <button
             type="button"
             onClick={onDelete}
             className={ui.iconButton}
-            aria-label={`Delete behavior ${behavior.name}`}
+            aria-label={`動作 ${behavior.name} を削除`}
           >
             ×
           </button>

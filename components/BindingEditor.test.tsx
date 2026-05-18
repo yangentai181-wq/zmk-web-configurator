@@ -36,7 +36,7 @@ describe("<BindingEditor>", () => {
     const input = screen.getByPlaceholderText(/A \/ N1 \/ LSHIFT/);
     await user.clear(input);
     await user.type(input, "K");
-    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await user.click(screen.getByRole("button", { name: "反映" }));
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({ behavior: "kp", params: ["K"], raw: "&kp K" }),
     );
@@ -58,7 +58,7 @@ describe("<BindingEditor>", () => {
     // Now layer picker should appear
     const layerSelect = screen.getAllByRole("combobox")[1];
     await user.selectOptions(layerSelect, "2");
-    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await user.click(screen.getByRole("button", { name: "反映" }));
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({ behavior: "mo", params: ["2"] }),
     );
@@ -77,9 +77,9 @@ describe("<BindingEditor>", () => {
     await user.selectOptions(screen.getByRole("combobox"), "custom");
     const raw = screen.getByPlaceholderText(/&bt BT_SEL 0/);
     await user.clear(raw);
-    expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "反映" })).toBeDisabled();
     await user.type(raw, "&bt BT_SEL 0");
-    expect(screen.getByRole("button", { name: "Apply" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "反映" })).not.toBeDisabled();
   });
 
   it("Cancel fires onCancel", async () => {
@@ -93,7 +93,7 @@ describe("<BindingEditor>", () => {
         onCancel={onCancel}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "取消" }));
     expect(onCancel).toHaveBeenCalled();
   });
 });
